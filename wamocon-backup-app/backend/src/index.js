@@ -7,6 +7,7 @@ const authRouter = require('./core/auth/auth.router');
 const backupRouter = require('./modules/backup/backup.router');
 const dashboardRouter = require('./modules/dashboard/dashboard.router');
 const runsRouter = require('./modules/backup/runs.router');
+const urbackupRouter = require('./modules/urbackup/urbackup.router');
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/jobs', backupRouter);
 app.use('/api/runs', runsRouter);
 app.use('/api/dashboard', dashboardRouter);
+app.use('/api/urbackup', urbackupRouter);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

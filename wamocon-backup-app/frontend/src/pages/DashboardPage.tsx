@@ -14,8 +14,22 @@ interface DashboardData {
     health: { status: string; version?: string; error?: string };
 }
 
+interface UrBackupClient {
+    id: number;
+    name: string;
+    online: boolean;
+    lastbackup: string;
+    client_version: string;
+}
+
+interface UrBackupStatus {
+    clients: UrBackupClient[];
+    error?: string;
+}
+
 export default function DashboardPage() {
     const [data, setData] = useState<DashboardData | null>(null);
+    const [urbackupStatus, setUrbackupStatus] = useState<UrBackupStatus | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -28,6 +42,24 @@ export default function DashboardPage() {
         try {
             const resp = await client.get('/dashboard');
             setData(resp.data);
+
+            // Fetch UrBackup status gracefully
+            try {
+                const urResp = await client.get('/urbackup/status');
+                // The wrapper might return the array directly or an object, let's assume it has an 'extra_clients' or similar array if successful. 
+                // Often the getStatus() returns an array of clients directly.
+                if (Array.isArray(urResp.data)) {
+                    setUrbackupStatus({ clients: urResp.data });
+                } else if (urResp.data && urResp.data.extra_clients) {
+                    setUrbackupStatus({ clients: urResp.data.extra_clients });
+                } else {
+                    setUrbackupStatus({ clients: [] });
+                }
+            } catch (urErr: any) {
+                console.warn('UrBackup API not reachable yet:', urErr.message);
+                setUrbackupStatus({ clients: [], error: 'UrBackup API nicht erreichbar' });
+            }
+
         } catch (err: any) {
             setError(err.response?.data?.error || 'Failed to fetch dashboard data');
         } finally {
@@ -67,10 +99,17 @@ export default function DashboardPage() {
     const isRunning = data?.last_runs?.some(r => r.status === 'running');
 
     // Simple hardcoded 3-2-1 check recommendation 
-    const destinations = data?.upcoming?.map(j => j.destination) || [];
-    const hasCloud = destinations.some(d => d.includes('drive'));
-    const hasLocal = destinations.some(d => d.includes('nas'));
+    const destinations = data?.upcoming?.map(j => j?.destination) || [];
+    const hasCloud = destinations.some(d => d?.includes('drive'));
+    const hasLocal = destinations.some(d => d?.includes('nas'));
     const meets321 = hasCloud && hasLocal;
+
+    // Helper to format timestamps from UrBackup
+    const formatTimestamp = (ts: any) => {
+        if (!ts) return 'Nie';
+        if (typeof ts === 'string' && ts.includes('-')) return ts; // Already formatted
+        return new Date(ts * 1000).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    };
 
 
     return (
@@ -144,6 +183,65 @@ export default function DashboardPage() {
 
                 <div className="col-span-1 md:col-span-1 border rounded-2xl overflow-hidden bg-white shadow-sm border-slate-200">
                     <Timeline recentRuns={data?.last_runs || []} />
+                </div>
+            </div>
+
+            {/* UrBackup Widget */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <div>
+                        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <span className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                                <ShieldAlert className="w-5 h-5" />
+                            </span>
+                            Notebook Backups (UrBackup)
+                        </h2>
+                        <p className="text-sm text-slate-500 mt-1">Live Status der Endgeräte (Windows & macOS)</p>
+                    </div>
+                </div>
+
+                <div className="p-0">
+                    {urbackupStatus?.error ? (
+                        <div className="p-6 text-orange-600 flex items-center gap-2 text-sm bg-orange-50/50">
+                            <XCircle className="w-5 h-5" />
+                            Verbindung zum UrBackup Backend konnte nicht hergestellt werden. (API-Fehler)
+                        </div>
+                    ) : urbackupStatus?.clients?.length === 0 ? (
+                        <div className="p-8 text-center text-slate-500 text-sm">
+                            Keine Notebook-Clients gefunden oder UrBackup Server ist noch leer.
+                        </div>
+                    ) : (
+                        <table className="min-w-full divide-y divide-slate-100">
+                            <thead className="bg-white">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Client</th>
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Status</th>
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Letztes Backup</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50 bg-white">
+                                {urbackupStatus?.clients?.map((client, idx) => (
+                                    <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                                        <td className="px-6 py-4 font-medium text-slate-900 text-sm">
+                                            {client.name}
+                                            <div className="text-xs text-slate-400 font-normal mt-0.5">v{client.client_version || 'Unknown'}</div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border ${client.online ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${client.online ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+                                                {client.online ? 'Online' : 'Offline'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-slate-600">
+                                            <div className="flex flex-col">
+                                                <span>File: {formatTimestamp(client.lastbackup)}</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
             </div>
 

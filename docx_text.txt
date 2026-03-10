@@ -1,0 +1,751 @@
+﻿WAMOCON GmbH
+PROJEKTKONZEPT
+Backup Planer APP
+Modulares IT-Management-System â€“ Modul 1
+
+Version
+2.0  (aktualisiert nach Anforderungsanalyse)
+Projektstart
+09.03.2026
+Deadline MVP
+13.03.2026
+Gesamtaufwand
+15 Stunden (3h/Tag Ã— 5 Tage)
+Unternehmen
+WAMOCON GmbH
+Hosting
+MacStudio â€“ Lokaler Server (neue IP)
+Technologie
+React + Node.js  |  rclone Backend
+Projektleiter
+Projektmanager & Testmanager
+Status
+In Planung â€“ Anforderungen finalisiert
+
+1. Executive Summary & Tiefenanalyse
+1.1 Ausgangssituation
+WAMOCON GmbH betreibt aktuell eine funktionsfÃ¤hige Backup-LÃ¶sung auf Basis von rclone, die Ã¼ber ein selbst entwickeltes Web-Dashboard (WMC Dashboard, 192.168.178.62:9090) gesteuert und Ã¼berwacht wird. Das System sichert OneDrive Business (~1,286 TB) tÃ¤glich automatisiert auf zwei Ziele: Synology NAS (lokal) und Google Drive (Cloud).
+
+Das bestehende System erfÃ¼llt seinen Grundzweck, stÃ¶ÃŸt jedoch an strukturelle Grenzen, die eine Weiterentwicklung im aktuellen Aufbau unwirtschaftlich machen. Es fehlen ein flexibler Backup-Planer, eine Systemverwaltung fÃ¼r weitere Backup-Quellen (Notebooks, GitHub), ein Rollen- und Berechtigungskonzept sowie eine skalierbare Modularchitektur fÃ¼r zukÃ¼nftige IT-Management-Funktionen.
+
+1.2 Strategische Entscheidung
+Die strategische Entscheidung lautet: AblÃ¶sung des bestehenden WMC Dashboards durch ein modernes, modular aufgebautes IT-Management-System. Der Backup Planer bildet dabei Modul #1. Das neue System wird als React + Node.js Web-Applikation auf dem unternehmenseigenen MacStudio gehostet und lÃ¤uft parallel zum Altsystem bis zur vollstÃ¤ndigen Migration.
+
+Kernprinzip: Das neue System ist kein reines Backup-Tool â€“ es ist eine erweiterbare IT-Management-Plattform. Jedes neue Modul (Network Monitor, Asset Management, etc.) wird als eigenstÃ¤ndige Einheit integriert, ohne bestehende Funktionen zu beeintrÃ¤chtigen.
+
+1.3 Tiefenanalyse: StÃ¤rken & SchwÃ¤chen des Ist-Systems
+Dimension
+StÃ¤rke âœ“
+SchwÃ¤che / Gap âœ—
+Backup-Engine
+rclone: stabil, bewÃ¤hrt, flexibel erweiterbar
+Keine UI-gestÃ¼tzte Konfiguration neuer Jobs
+Zeitplanung
+Cron-Jobs funktionieren zuverlÃ¤ssig
+Feste Zeiten, kein flexibler Planer mit Kalender-UI
+Ziele
+Dual-Target (NAS + GDrive) eingerichtet
+Ziel nicht pro Job konfigurierbar
+Quellen
+OneDrive vollstÃ¤ndig integriert
+Keine UnterstÃ¼tzung fÃ¼r Notebooks, GitHub, weitere Quellen
+Monitoring
+Dashboard zeigt Live-Status
+Keine automatischen Benachrichtigungen bei Fehlern
+Reporting
+Protokolldateien vorhanden
+Kein wÃ¶chentlicher/monatlicher Bericht
+Rollen
+Kein Konzept vorhanden
+Jeder mit Zugang kann alles steuern
+Architektur
+Funktioniert als Monolith
+Schlecht erweiterbar, kein Modul-Konzept
+Risikobewertung
+Nicht vorhanden
+Keine 3-2-1-Regel-PrÃ¼fung, kein Redundanz-Hinweis
+UX / Design
+Funktional, klar strukturiert
+Kein Kalender, keine Timeline-Ansicht
+
+1.4 Referenzsysteme & UX-Orientierung
+Folgende Referenzsysteme wurden in die Anforderungsanalyse einbezogen:
+SimpleBackups â€“ Modell fÃ¼r Job-Verwaltung, Quellen/Ziele-Konfiguration, Status-Dashboard
+EaseUS Todo Backup â€“ Modell fÃ¼r Backup-Typen (Voll/Inkrementell/Differenziell), Zeitplanung
+Apple Kalender â€“ UX-Referenz fÃ¼r Timeline und Kalenderansicht: sauber, intuitiv, keine Ãœberlastung
+
+Design-Leitmotiv: Weniger ist mehr. Kritische Informationen sofort sichtbar, Details auf Abruf. Kein Information-Overload. Farben nur fÃ¼r Status (GrÃ¼n/Gelb/Rot), nicht fÃ¼r Dekoration.
+
+2. Versionsstrategie & Produkt-Roadmap
+Das Produkt wird in klar abgegrenzten Versionen entwickelt. Jede Version ist in sich deploybar und bringt messbaren Mehrwert. Bugfixes flieÃŸen als Patch-Versionen (x.x.1, x.x.2) ein, ohne die Roadmap zu verschieben.
+
+v1.0 â€“ MVP  â€“  Backup Planer Kern  |  Deadline: 13.03.2026
+Ziel
+LauffÃ¤higes System mit Kernfunktionen â€“ ersetzt das bestehende WMC Dashboard
+Backup-Jobs
+Erstellen, Bearbeiten, LÃ¶schen von Backup-Jobs (OneDrive â†’ NAS / Google Drive)
+Zeitplanung
+Einfacher Planer: tÃ¤glich, wÃ¶chentlich, monatlich â€“ Cron-basiert via rclone
+Dashboard
+Status-Ãœbersicht aller Jobs, letzter Backup-Status, nÃ¤chste geplante AusfÃ¼hrung
+Timeline
+Kompakte Timeline-Vorschau der letzten 7 Tage und nÃ¤chsten 3 Termine
+Fehleranzeige
+Fehlgeschlagene Backups mit Fehlergrund direkt sichtbar
+Benachrichtigung
+E-Mail bei Fehler und bei erfolgreichem Abschluss
+Rollen
+Admin (voller Zugriff) + Gast (nur Lesezugriff)
+Auth
+Login/Logout mit gehashtem Passwort (bcrypt)
+Hosting
+MacStudio, Node.js Backend, React Frontend
+
+v1.1 â€“ Kalender & Reporting  â€“  UX-Erweiterung  |  Ziel: ~2 Wochen nach MVP
+Ziel
+Kalenderansicht (Apple-Stil) und automatisiertes Reporting einfÃ¼hren
+Kalender
+VollstÃ¤ndige Kalenderansicht: vergangene Backups + geplante Jobs, filterbar nach Quelle/Ziel
+Wochenbericht
+Automatischer wÃ¶chentlicher E-Mail-Bericht: alle AktivitÃ¤ten der Woche
+Monatsbericht
+Automatischer monatlicher E-Mail-Bericht: Zusammenfassung, Erfolgsrate, Speicherverbrauch
+Backup-Typen
+Auswahl: Vollbackup, Inkrementell, Differenziell pro Job konfigurierbar
+Aufbewahrung
+Flexible Retention pro Job: 7 Tage / 4 Wochen / 3 Monate / 12 Monate / unbegrenzt
+Risikobewertung
+3-2-1-Regel-PrÃ¼fung: Warnung wenn Job nur 1 Ziel hat oder kein Offsite-Ziel
+
+v1.2 â€“ Quellenerweiterung  â€“  Notebooks & GitHub  |  Ziel: ~4 Wochen nach MVP
+Ziel
+Weitere Backup-Quellen anbinden â€“ Erweiterbarkeit der Plattform beweisen
+Notebooks
+Backup von Unternehmens-Notebooks via Skript (rclone lokal installiert, Push-Modell)
+GitHub
+GitHub Repository Backup: alle Repos einer Organisation via GitHub API + rclone
+Systemverwaltung
+Asset-Verwaltung: zu sichernde Systeme mit Name, Typ, IP/URL, Status
+Job-Zuweisung
+Backup-Jobs einem konkreten System zuweisen (statt nur abstrakter Quelle)
+KapazitÃ¤tsplanung
+Speicherverbrauch pro System und Ziel â€“ Trendanzeige
+
+v2.0 â€“ Plattform-Ausbau  â€“  Weitere IT-Module  |  Ziel: Q2/Q3 2026
+Ziel
+Das modulare IT-Management-System wÃ¤chst Ã¼ber Backup hinaus
+Modul: Network
+Erweiterter Network Monitor â€“ VerfÃ¼gbarkeit, Latenz, Alerts
+Modul: Assets
+IT-Asset-Verwaltung: GerÃ¤te, Lizenzen, Wartungsintervalle
+Modul: Reports
+Zentrales Reporting-Dashboard: alle Module, exportierbar als PDF
+API
+REST API fÃ¼r externe Integrationen (z.B. Monitoring-Tools, Ticketsysteme)
+Multi-User
+Erweitertes Rollen-Konzept: mehrere Admins, Benachrichtigungs-EmpfÃ¤nger konfigurierbar
+
+3. Anforderungen â€“ v1.0 (MVP)
+3.1 Funktionale Anforderungen
+ID
+Anforderung
+Beschreibung
+Prio
+Version
+FA-01
+Backup-Job erstellen
+Name, Quelle (OneDrive), Ziel (NAS/GDrive/beide), Zeitplan, Typ definieren
+Hoch
+v1.0
+FA-02
+Backup-Job bearbeiten
+Alle Parameter eines Jobs nachtrÃ¤glich Ã¤ndern
+Hoch
+v1.0
+FA-03
+Backup-Job lÃ¶schen
+Mit BestÃ¤tigungsdialog, History bleibt erhalten
+Hoch
+v1.0
+FA-04
+Job manuell starten
+Sofortiges Starten eines Jobs auÃŸerhalb des Zeitplans
+Hoch
+v1.0
+FA-05
+Dashboard Ãœbersicht
+Alle Jobs mit Status, letzter AusfÃ¼hrung, nÃ¤chstem Termin
+Hoch
+v1.0
+FA-06
+Timeline-Vorschau
+Kompakte Ansicht: letzte 7 Tage + nÃ¤chste 3 geplante AusfÃ¼hrungen
+Hoch
+v1.0
+FA-07
+Fehlerdetails
+Fehlgeschlagene Backups zeigen Fehlergrund (Log-Auszug)
+Hoch
+v1.0
+FA-08
+E-Mail bei Fehler
+Sofortige Benachrichtigung bei fehlgeschlagenem Backup
+Hoch
+v1.0
+FA-09
+E-Mail bei Erfolg
+Benachrichtigung nach erfolgreichem Abschluss
+Mittel
+v1.0
+FA-10
+Login / Logout
+Authentifizierung mit Benutzername + Passwort
+Hoch
+v1.0
+FA-11
+Rollen: Admin
+Voller Zugriff: Jobs anlegen, starten, bearbeiten, lÃ¶schen
+Hoch
+v1.0
+FA-12
+Rollen: Gast
+Nur Lesezugriff: Dashboard, Timeline, Logs einsehen
+Hoch
+v1.0
+FA-13
+Log-Ansicht
+Rohe Log-Ausgabe pro Job und Datum einsehbar
+Mittel
+v1.0
+FA-14
+Backup-Typen
+Vollbackup, Inkrementell, Differenziell wÃ¤hlbar
+Mittel
+v1.1
+FA-15
+Kalenderansicht
+Apple-Stil: vergangene + geplante Backups in Monatsansicht
+Mittel
+v1.1
+FA-16
+WÃ¶chentlicher Bericht
+Automatischer E-Mail-Bericht jeden Montag
+Mittel
+v1.1
+FA-17
+Monatlicher Bericht
+Automatischer E-Mail-Bericht zum Monatsersten
+Mittel
+v1.1
+FA-18
+Retention pro Job
+Aufbewahrungsdauer frei wÃ¤hlbar in konventionellen Intervallen
+Mittel
+v1.1
+FA-19
+Risikobewertung
+3-2-1-Regel-PrÃ¼fung, Warnung bei Single-Point-of-Failure
+Niedrig
+v1.1
+FA-20
+Notebook-Backup
+Backup von Windows-Notebooks via rclone-Skript
+Mittel
+v1.2
+FA-21
+GitHub-Backup
+Backup von GitHub-Repositories via API
+Mittel
+v1.2
+FA-22
+Systemverwaltung
+Asset-Verwaltung: Systeme mit Name, Typ, IP, Status
+Mittel
+v1.2
+
+3.2 Nicht-Funktionale Anforderungen
+ID
+Anforderung
+Zielwert
+Version
+NFA-01
+Performance â€“ Seitenaufbau
+< 2 Sekunden (lokales Netz)
+v1.0
+NFA-02
+VerfÃ¼gbarkeit
+> 99% wÃ¤hrend GeschÃ¤ftszeiten (MacStudio lÃ¤uft)
+v1.0
+NFA-03
+Sicherheit â€“ PasswÃ¶rter
+bcrypt-Hashing, keine Klartextspeicherung
+v1.0
+NFA-04
+Sicherheit â€“ Transport
+HTTPS (self-signed oder Let's Encrypt intern)
+v1.0
+NFA-05
+Browser-KompatibilitÃ¤t
+Chrome, Firefox, Edge â€“ aktuelle Versionen
+v1.0
+NFA-06
+Wartbarkeit
+Modularer Code, README, Inline-Kommentare
+v1.0
+NFA-07
+Erweiterbarkeit
+Neue Module ohne Refactoring des Kerns integrierbar
+v1.0
+NFA-08
+Datensicherheit
+Keine Backup-Daten auf App-Server, nur Metadaten & Logs
+v1.0
+NFA-09
+Session-Management
+Session-Timeout nach 8 Stunden InaktivitÃ¤t
+v1.0
+
+4. Systemarchitektur & Technologie
+4.1 Architektur-Ãœbersicht
+Architekturprinzip: Drei-Schichten-Modell â€“ React Frontend (Presentation), Node.js/Express Backend (Business Logic), SQLite/PostgreSQL Datenbank (Persistence). rclone lÃ¤uft als separater Prozess und wird vom Backend orchestriert.
+
+Schicht
+Technologie
+Aufgabe
+Frontend
+React + TypeScript, TailwindCSS
+UI, Kalender, Dashboard, Job-Verwaltung
+Backend
+Node.js + Express
+API, Job-Scheduling (node-cron), E-Mail (nodemailer)
+Datenbank
+SQLite (v1.0) â†’ PostgreSQL (ab v2.0)
+Jobs, Logs, User, Konfiguration
+Backup-Engine
+rclone (bestehend, bewÃ¤hrt)
+Eigentliche DateiÃ¼bertragung, Token-Management
+Scheduler
+node-cron (intern) + rclone-Skripte
+Zeitgesteuerte AusfÃ¼hrung der Backup-Jobs
+Hosting
+MacStudio (macOS), PM2 als Prozessmanager
+Lokaler Server, Autostart, Logs
+Auth
+JWT-Token + bcrypt
+Session-Management, Passwort-Hashing
+
+4.2 Modulstruktur
+Die Anwendung ist von Anfang an modular aufgebaut. Jedes Modul ist ein eigenstÃ¤ndiger Ordner im Projekt mit eigenem Router, eigenen Services und eigenen UI-Komponenten:
+/modules/backup â€“ Backup Planer (Modul #1, v1.0)
+/modules/network â€“ Network Monitor (Migration aus Altsystem, v2.0)
+/modules/assets â€“ IT-Asset-Verwaltung (v2.0)
+/modules/reports â€“ Zentrales Reporting (v2.0)
+/core â€“ Auth, User-Management, E-Mail, Shared Components
+
+4.3 Migrationsstrategie vom Altsystem
+Phase
+Aktion
+Wann
+Phase 1
+Neues System aufbauen & parallel betreiben (neue IP/Port)
+v1.0 â€“ 13.03.2026
+Phase 2
+Backup-Funktionen vollstÃ¤ndig Ã¼bernommen & verifiziert
+v1.1
+Phase 3
+Network Monitor migriert, alte App wird abgeschaltet
+v2.0
+Phase 4
+Altsystem dekommissioniert, neue IP als Standard
+Nach v2.0
+
+5. Projektplan â€“ MVP v1.0 (13.03.2026)
+Der MVP-Plan ist auf 15 Stunden (5 Tage Ã— 3h) ausgelegt. PrioritÃ¤t hat ausschlieÃŸlich v1.0-Scope. Alles andere kommt in v1.1+.
+
+Tag
+Datum
+Schwerpunkt
+Konkrete Aufgaben
+h
+Tag 1
+09.03.
+Fundament
+Projektstruktur anlegen (React + Node.js Boilerplate), Datenbank-Schema (Jobs, Users, Logs), Auth-System (Login/JWT/bcrypt), Basis-Routing
+3h
+Tag 2
+10.03.
+Backend Core
+rclone-Integration (Job ausfÃ¼hren, Status lesen), Job-CRUD API (Erstellen/Bearbeiten/LÃ¶schen), Cron-Scheduling (node-cron), Log-Parsing
+3h
+Tag 3
+11.03.
+Frontend Core
+Dashboard-Komponente, Job-Verwaltungs-UI, Timeline-Komponente (7-Tage-Vorschau), Fehleranzeige mit Log-Auszug
+3h
+Tag 4
+12.03.
+Features & Test
+E-Mail-Benachrichtigung (Fehler + Erfolg), Rollen-Implementierung (Admin/Gast), Unit Tests, Integrationstests, Bugfixing
+3h
+Tag 5
+13.03.
+Abschluss
+Systemtest (alle FA v1.0), Abnahmetest (UAT), Deployment MacStudio (PM2), README, Abnahmeprotokoll
+3h
+
+5.1 Meilensteine
+#
+Meilenstein
+Datum
+Abnahmekriterium
+M1
+Kick-off & Setup abgeschlossen
+09.03.2026
+Projektstruktur steht, Auth funktioniert lokal
+M2
+Backend Core fertig
+10.03.2026
+Jobs kÃ¶nnen via API erstellt & rclone-Aufruf ausgelÃ¶st werden
+M3
+Frontend Core fertig
+11.03.2026
+Dashboard zeigt Jobs, Timeline rendert korrekt
+M4
+Feature-Complete MVP
+12.03.2026
+Alle FA v1.0 implementiert, E-Mail-Test erfolgreich
+M5
+Go-Live MVP
+13.03.2026
+UAT bestanden, App auf MacStudio deployed, DoD erfÃ¼llt
+
+6. Testplan & QualitÃ¤tssicherung
+6.1 Teststrategie
+Aufgrund der kurzen MVP-Laufzeit wird ein risikobasierter Testansatz verfolgt: maximale Testabdeckung der kritischen Kernfunktionen (Auth, Job-Management, rclone-AusfÃ¼hrung), reduzierte Abdeckung der Nice-to-Haves.
+
+Teststufe
+Wer
+Wann
+Fokus
+Unit Tests
+Entwickler
+Tag 3â€“4
+Job-Logik, Cron-Berechnung, Log-Parser, Auth-Funktionen
+API-Tests
+Entwickler
+Tag 4
+Alle REST-Endpunkte: CRUD Jobs, Auth, Logs
+Integrationstest
+Entwickler
+Tag 4
+rclone-Aufruf â†’ Log-Erzeugung â†’ Status-Update â†’ E-Mail
+Systemtest
+Projektmanager
+Tag 5 Vm.
+End-to-End alle TC mit PrioritÃ¤t Hoch
+UAT (Abnahme)
+Auftraggeber
+Tag 5 Nm.
+Validierung gegen Akzeptanzkriterien, Abnahmeprotokoll
+
+6.2 TestfÃ¤lle v1.0
+TC-ID
+Testfall
+Vorbedingung
+Erwartetes Ergebnis
+Prio
+TC-01
+Login Admin â€“ gÃ¼ltig
+User existiert in DB
+Dashboard sichtbar, Admin-MenÃ¼ aktiv
+Hoch
+TC-02
+Login Gast â€“ gÃ¼ltig
+Gast-Account existiert
+Dashboard sichtbar, keine Edit-Buttons
+Hoch
+TC-03
+Login â€“ falsches PW
+User existiert
+Fehlermeldung, kein Zugang
+Hoch
+TC-04
+Job erstellen
+Admin eingeloggt
+Job in Liste, Cron registriert
+Hoch
+TC-05
+Job bearbeiten
+Job existiert
+Ã„nderungen gespeichert & sofort sichtbar
+Hoch
+TC-06
+Job lÃ¶schen
+Job existiert
+Job entfernt, BestÃ¤tigung, Cron deregistriert
+Hoch
+TC-07
+Job manuell starten
+Admin, rclone verfÃ¼gbar
+rclone-Prozess startet, Status: Running
+Hoch
+TC-08
+Fehler-Anzeige
+Job schlÃ¤gt fehl (falsche Credentials)
+Fehlerstatus + Fehlergrund in UI sichtbar
+Hoch
+TC-09
+E-Mail bei Fehler
+SMTP konfiguriert, Job schlÃ¤gt fehl
+E-Mail innerhalb 2 Minuten empfangen
+Hoch
+TC-10
+Timeline Anzeige
+Mindestens 1 abgeschlossener Job
+Letzte 7 Tage korrekt dargestellt
+Mittel
+TC-11
+Gast kann nicht starten
+Gast eingeloggt
+Start-Button nicht vorhanden oder deaktiviert
+Hoch
+TC-12
+Log-Ansicht
+Job wurde ausgefÃ¼hrt
+Log-Datei korrekt lesbar in UI
+Mittel
+TC-13
+Session-Timeout
+User 8h inaktiv
+Automatischer Logout, Weiterleitung Login
+Mittel
+
+6.3 Bug-Priorisierung & Go-Live-Kriterien
+PrioritÃ¤t
+Definition
+Go-Live-Entscheidung
+P1 â€“ Kritisch
+App unbenutzbar, Datenverlust, Security-LÃ¼cke, Auth kaputt
+Kein Go-Live â€“ muss behoben werden
+P2 â€“ Hoch
+Kernfunktion fehlerhaft, kein Workaround
+Go-Live nur mit Zustimmung Auftraggeber
+P3 â€“ Mittel
+Funktion fehlerhaft, Workaround vorhanden
+Go-Live OK â€“ Ticket fÃ¼r v1.0.1
+P4 â€“ Niedrig
+Kosmetik, UX-Verbesserung, Texte
+Go-Live OK â€“ Ticket fÃ¼r v1.1
+
+7. Jira-Struktur & Ticket-Hierarchie
+7.1 Projekttyp & Konfiguration
+Parameter
+Empfehlung
+BegrÃ¼ndung
+Projekttyp
+Scrum
+5-Tage-Sprints, klare AbschlÃ¼sse, Burndown-Chart
+Sprint-LÃ¤nge
+1 Tag pro Sprint (5 Sprints)
+Jeder Tag = 1 Sprint = 1 klarer Tagesabschluss
+Ticket-Hierarchie
+Epic â†’ Story â†’ Task / Bug
+Simpel, kein Overhead, max. 3 Ebenen
+Labels
+P1-Kritisch, P2-Hoch, P3-Mittel, P4-Niedrig, v1.0, v1.1, v1.2
+Ersetzt Custom Fields
+Story Points
+1 SP = 30 Minuten
+Passt zu 3h/Tag = max. 6 SP/Tag
+
+7.2 Epic-Struktur
+Epic
+Titel
+Version
+EnthÃ¤lt
+EP-01
+Fundament & Infrastruktur
+v1.0
+Projektsetup, Auth, DB-Schema, Routing
+EP-02
+Backup-Job Management
+v1.0
+CRUD Jobs, rclone-Integration, Scheduling
+EP-03
+Dashboard & Timeline
+v1.0
+Dashboard UI, Timeline, Fehleranzeige, Logs
+EP-04
+Benachrichtigungen & Rollen
+v1.0
+E-Mail, Admin/Gast, Session
+EP-05
+Testing & Deployment
+v1.0
+Unit Tests, Systemtest, UAT, MacStudio-Deploy
+EP-06
+Kalender & Reporting
+v1.1
+Apple-Kalender UI, Wochen-/Monatsbericht
+EP-07
+Backup-Typen & Retention
+v1.1
+Voll/Inkr./Diff., Aufbewahrungsregeln, 3-2-1
+EP-08
+Quellenerweiterung
+v1.2
+Notebook-Backup, GitHub-Backup, Systemverwaltung
+
+7.3 Empfohlene Stories v1.0 (Sprint 1â€“5)
+Story-ID
+Titel
+Epic
+Sprint
+SP
+S-01
+Projektstruktur React + Node.js aufsetzen
+EP-01
+1
+2
+S-02
+Datenbank-Schema erstellen (Jobs, Users, Logs)
+EP-01
+1
+2
+S-03
+Login/Logout mit JWT + bcrypt implementieren
+EP-01
+1
+2
+S-04
+Job-CRUD API (POST/GET/PUT/DELETE)
+EP-02
+2
+3
+S-05
+rclone-Aufruf vom Backend orchestrieren
+EP-02
+2
+3
+S-06
+Cron-Scheduling via node-cron
+EP-02
+2
+2
+S-07
+Log-Parser: rclone-Output strukturiert speichern
+EP-02
+2
+2
+S-08
+Dashboard-Komponente (Job-Ãœbersicht)
+EP-03
+3
+3
+S-09
+Timeline-Komponente (7-Tage + nÃ¤chste 3)
+EP-03
+3
+3
+S-10
+Fehleranzeige mit Log-Auszug in UI
+EP-03
+3
+2
+S-11
+E-Mail bei Fehler (nodemailer)
+EP-04
+4
+2
+S-12
+E-Mail bei Erfolg
+EP-04
+4
+1
+S-13
+Admin/Gast Rollen-Middleware
+EP-04
+4
+2
+S-14
+Session-Timeout (8h)
+EP-04
+4
+1
+S-15
+Unit & Integrationstests schreiben
+EP-05
+4
+2
+S-16
+Systemtest + UAT durchfÃ¼hren
+EP-05
+5
+2
+S-17
+Deployment auf MacStudio (PM2 + HTTPS)
+EP-05
+5
+3
+S-18
+README + Abnahmeprotokoll
+EP-05
+5
+1
+
+8. Risikoanalyse
+Risiko
+W'keit
+Auswirkung
+GegenmaÃŸnahme
+rclone-Integration komplexer als erwartet
+Mittel
+Hoch
+Tag 2 priorisieren; Fallback: bestehende Skripte als Shell-Calls
+15h reichen nicht fÃ¼r alle Features
+Mittel
+Mittel
+Harter v1.0-Scope: nur FA mit Prio Hoch; Rest â†’ v1.1
+MacStudio-Konfiguration aufwendig
+Niedrig
+Mittel
+PM2 + Node.js vorab installieren vor Tag 1
+E-Mail-Setup (SMTP) schlÃ¤gt fehl
+Niedrig
+Mittel
+SMTP-Credentials und Test am Tag 4 frÃ¼h; Fallback: Log-Only
+AnforderungsÃ¤nderung nach Tag 2
+Niedrig
+Hoch
+Anforderungs-Freeze nach M2; Ã„nderungen â†’ v1.1 Backlog
+Parallelbetrieb erzeugt Konfusion bei Nutzern
+Niedrig
+Niedrig
+Klare Kommunikation: neues System auf neuer URL, alt bleibt aktiv
+
+9. Definition of Done â€“ v1.0 MVP
+Die App gilt als fertiggestellt (Go-Live freigegeben) wenn ALLE folgenden Kriterien erfÃ¼llt sind:
+
+Alle Stories S-01 bis S-18 auf Status 'Done' in Jira
+Alle TestfÃ¤lle TC-01 bis TC-09 (PrioritÃ¤t Hoch) bestanden
+Kein offener P1-Bug zum Zeitpunkt der Abnahme
+E-Mail-Benachrichtigung funktioniert (Test-Mail empfangen)
+App auf MacStudio deployed, via Browser erreichbar
+Admin-Login und Gast-Login funktionieren korrekt
+Mindestens 1 echter Backup-Job lÃ¤uft erfolgreich durch
+README vorhanden: Setup, Konfiguration, Troubleshooting
+Abnahmeprotokoll vom Auftraggeber unterzeichnet
+
+10. Hinweis: Claude Code Implementierungsauftrag
+Dieses Dokument dient als Grundlage fÃ¼r die technische Implementierung via Claude Code. Ein separates Implementierungs-Briefing-Dokument (claude-code-briefing.md) wurde parallel erstellt und enthÃ¤lt den vollstÃ¤ndigen technischen Auftrag.
+
+Das Claude Code Briefing enthÃ¤lt:
+VollstÃ¤ndige technische Spezifikation der v1.0-Architektur
+Datenbankschema (SQLite) mit allen Tabellen und Feldern
+API-Endpunkte-Spezifikation (REST)
+Ordnerstruktur und Datei-Konventionen
+Schritt-fÃ¼r-Schritt Implementierungsreihenfolge
+rclone-Integrationsspezifikation
+Deployment-Anweisungen fÃ¼r MacStudio (PM2)
+
+WAMOCON GmbH  |  Projektkonzept Backup Planer APP  |  v2.0  |  09.03.2026  |  Vertraulich

@@ -16,7 +16,7 @@ export default function HelpPage() {
             </div>
 
             {/* Die 3-2-1 Regel */}
-            <section className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-3xl p-8 sm:p-10 shadow-xl relative overflow-hidden">
+            <section id="rule-321" className="scroll-mt-28 bg-gradient-to-br from-indigo-900 to-slate-900 rounded-3xl p-8 sm:p-10 shadow-xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
                     <ShieldCheck className="w-64 h-64 text-white" />
                 </div>
@@ -49,7 +49,7 @@ export default function HelpPage() {
             </section>
 
             {/* Backup-Arten erklärt */}
-            <section>
+            <section id="backup-types" className="scroll-mt-28">
                 <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
                     <Database className="w-6 h-6 text-indigo-500" />
                     Welcher Backup-Typ ist der richtige?
@@ -106,7 +106,7 @@ export default function HelpPage() {
             </section>
 
             {/* FAQ / How to Use */}
-            <section>
+            <section id="faq" className="scroll-mt-28">
                 <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
                     <BookOpen className="w-6 h-6 text-indigo-500" />
                     Häufige Fragen zur App-Nutzung
@@ -133,7 +133,7 @@ export default function HelpPage() {
                         </p>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                         <h4 className="font-bold text-slate-800 mb-2 flex items-start gap-2">
                             <Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
                             Kann ich Jobs auch manuell ausführen?
@@ -143,7 +143,7 @@ export default function HelpPage() {
                         </p>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                         <h4 className="font-bold text-slate-800 mb-2 flex items-start gap-2">
                             <Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
                             Was passiert wenn ein Backup abbbricht?
@@ -153,6 +153,68 @@ export default function HelpPage() {
                         </p>
                     </div>
 
+                </div>
+            </section>
+
+            {/* UrBackup Integration Section */}
+            <section id="urbackup" className="scroll-mt-28 bg-indigo-900 rounded-3xl p-8 sm:p-10 shadow-xl relative overflow-hidden text-white">
+                <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                    <Database className="w-64 h-64 text-indigo-300" />
+                </div>
+                <div className="relative z-10">
+                    <h2 className="text-2xl font-bold mb-4 flex items-center gap-3">
+                        Notebook-Sicherungen (UrBackup)
+                    </h2>
+                    <p className="text-indigo-200 text-lg mb-8 max-w-3xl">
+                        Für die vollständige und inkrementelle Sicherung von Mitarbeiter-Notebooks (Windows & macOS) verwenden wir das eigenständige System <strong>UrBackup</strong>.
+                    </p>
+
+                    <div className="space-y-6">
+                        {/* Step 1 Server */}
+                        <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-6 rounded-2xl">
+                            <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
+                                <span className="bg-indigo-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
+                                Server auf dem Mac Studio aufsetzen
+                            </h3>
+                            <p className="text-indigo-100 mb-4 text-sm leading-relaxed">
+                                Da UrBackup nativ primär für Linux/Windows Server gedacht ist, betreiben wir ihn auf dem Mac Studio über <strong>Docker</strong> (empfohlen: OrbStack oder Docker Desktop). Nutze folgende <code>docker-compose.yml</code> um den Container zu starten:
+                            </p>
+                            <pre className="bg-slate-900/50 p-4 rounded-xl text-xs font-mono text-indigo-300 overflow-x-auto border border-white/10">
+                                {`version: '3'
+services:
+  urbackup:
+    image: uroni/urbackup-server:latest
+    container_name: urbackup-server
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin
+    volumes:
+      - /path/to/mac/storage/backup:/backups
+      - /path/to/mac/storage/database:/var/urbackup
+    # Standard-Ports für Web-Interface und Client-Backups
+    ports:
+      - "55413-55415:55413-55415"
+      - "35623:35623/udp"`}
+                            </pre>
+                            <p className="text-indigo-200 text-xs mt-3">Tipp: Ersetze die <code>/path/to/mac/storage/...</code> Pfade mit den echten Verzeichnissen oder externen Festplatten an deinem Mac Studio.</p>
+                        </div>
+
+                        {/* Step 2 Clients */}
+                        <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-6 rounded-2xl">
+                            <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
+                                <span className="bg-indigo-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">2</span>
+                                Endgeräte (Clients) verbinden
+                            </h3>
+                            <ul className="list-disc pl-5 text-indigo-100 text-sm space-y-2 leading-relaxed">
+                                <li>Lade den offiziellen Client für Windows oder macOS herunter: <a href="https://www.urbackup.org/download.html" target="_blank" rel="noreferrer" className="text-blue-300 hover:text-white underline outline-none">Download Seite</a>.</li>
+                                <li>Installiere den Client auf dem entsprechenden Notebook.</li>
+                                <li>Während der Installation sucht der Client (im selben LAN) automatisch nach dem passenden UrBackup Server.</li>
+                                <li><strong>Internet-Backups:</strong> Damit Backups auch im Homeoffice funktionieren, muss in den Server-Einstellungen eine öffentliche IP / Domain oder ein internes VPN konfiguriert sein, die der Client erreichen kann.</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </section>
 

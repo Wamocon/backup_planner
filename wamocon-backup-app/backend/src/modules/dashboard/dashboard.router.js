@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
 
         // Let's grab upcoming jobs by checking scheduler next execution bounds if possible, 
         // but for now we'll just return active jobs as upcoming info isn't easily extracted from node-cron without extensions
-        const activeJobsRaw = db.prepare('SELECT id, name, schedule FROM backup_jobs WHERE is_active = 1').all();
+        const activeJobsRaw = db.prepare('SELECT id, name, schedule, destination FROM backup_jobs WHERE is_active = 1').all();
         const activeJobs = activeJobsRaw.map(job => {
             try {
                 const interval = parser.parseExpression(job.schedule);
@@ -22,6 +22,14 @@ router.get('/', async (req, res) => {
             } catch (e) {
                 job.next_run = null;
             }
+
+            try {
+                job.destination = JSON.parse(job.destination);
+            } catch (e) {
+                // If parsing fails or it's not a JSON array, make it an array.
+                job.destination = [job.destination];
+            }
+
             return job;
         });
 

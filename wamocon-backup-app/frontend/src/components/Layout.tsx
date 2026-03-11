@@ -1,9 +1,34 @@
+import { useEffect, useState } from 'react';
 import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
-import { LogOut, LayoutDashboard, Database, FileText, LifeBuoy } from 'lucide-react';
+import { LogOut, LayoutDashboard, Database, FileText, LifeBuoy, Calendar, Loader2 } from 'lucide-react';
+import client from '../api/client';
 
 export default function Layout() {
     const token = localStorage.getItem('token');
     const location = useLocation();
+
+    const [runningJob, setRunningJob] = useState<any | null>(null);
+
+    useEffect(() => {
+        if (!token) return;
+
+        const checkRunningJobs = async () => {
+            try {
+                const resp = await client.get('/dashboard');
+                // Check if any job is currently running
+                const runs = resp.data?.last_runs || [];
+                const activeRun = runs.find((r: any) => r.status === 'running');
+                setRunningJob(activeRun || null);
+            } catch (err) {
+                // Ignore API polling errors silently
+            }
+        };
+
+        // Check immediately and then every 10 seconds
+        checkRunningJobs();
+        const interval = setInterval(checkRunningJobs, 10000);
+        return () => clearInterval(interval);
+    }, [token]);
 
     if (!token) {
         return <Navigate to="/login" replace />;
@@ -17,6 +42,7 @@ export default function Layout() {
     const navItems = [
         { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { path: '/jobs', label: 'Backup Plans', icon: Database },
+        { path: '/calendar', label: 'Kalender', icon: Calendar },
         { path: '/logs', label: 'Logs & Results', icon: FileText },
         {
             path: '/help',
@@ -26,7 +52,8 @@ export default function Layout() {
                 { id: 'rule-321', label: 'Die 3-2-1 Regel' },
                 { id: 'backup-types', label: 'Backup-Arten' },
                 { id: 'faq', label: 'Häufige Fragen (FAQ)' },
-                { id: 'urbackup', label: 'Notebooks (UrBackup)' }
+                { id: 'urbackup', label: 'Notebooks (UrBackup)' },
+                { id: 'manual', label: 'Handbuch & Suche' }
             ]
         },
         { path: 'urbackup', label: 'Notebooks (UrBackup)', icon: Database, isExternal: true },
@@ -114,15 +141,28 @@ export default function Layout() {
                     </nav>
                 </div>
 
-                {/* User / Logout */}
-                <div className="p-4 border-t border-slate-800 bg-slate-950/20">
-                    <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-colors"
-                    >
-                        <LogOut className="h-5 w-5" />
-                        Sign out
-                    </button>
+                <div className="flex flex-col gap-2">
+                    {/* Running Job Widget */}
+                    {runningJob && (
+                        <div className="mx-4 mb-2 p-3 rounded-xl bg-blue-900/30 border border-blue-800/50 flex flex-col items-center justify-center text-center animate-pulse shadow-lg shadow-blue-900/10">
+                            <Loader2 className="h-5 w-5 text-blue-400 animate-spin mb-1" />
+                            <span className="text-sm font-medium text-blue-300 line-clamp-1 w-full" title={runningJob.job_name}>
+                                {runningJob.job_name} läuft...
+                            </span>
+                            <span className="text-xs text-blue-500/70 mt-0.5">Fortschritt in Logs</span>
+                        </div>
+                    )}
+
+                    {/* User / Logout */}
+                    <div className="p-4 border-t border-slate-800 bg-slate-950/20">
+                        <button
+                            onClick={handleLogout}
+                            className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                        >
+                            <LogOut className="h-5 w-5" />
+                            Sign out
+                        </button>
+                    </div>
                 </div>
             </aside>
 

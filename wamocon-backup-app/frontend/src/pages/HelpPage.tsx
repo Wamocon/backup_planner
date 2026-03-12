@@ -34,6 +34,26 @@ export default function HelpPage() {
             title: "Wie ändere ich die Aufbewahrungsdauer (Retention)?",
             content: "Beim Bearbeiten eines Backup-Plans gibt es ein Feld 'Aufbewahrung (Tage)'. Wenn hier z.B. 30 eintragen wird, sorgt das System dafür, dass gelöschte Dateien aus der Quelle noch 30 Tage im Cloud-Papierkorb oder Backup-Ordner verbleiben (abhängig von der rclone und Ziel-Konfiguration).",
             keywords: ["retention", "aufbewahrung", "löschen", "tage", "papierkorb"]
+        },
+        {
+            title: "UrBackup Client verbindet sich nicht (Offline)",
+            content: "Wenn der Windows/Mac Client nach der Installation im UrBackup-Dashboard (Port 55414) als offline angezeigt wird, blockiert vermutlich eine Firewall (z.B. macOS Firewall am Server oder Windows Defender am Client) die automatische UDP-Erkennung. Lösung: 1. Im UrBackup Server unter Einstellungen -> Server auf 'Mache Internet-Backups' stellen und die Server-IP (z.B. 192.168.178.62) eintragen. 2. Am Client (z.B. Windows) Rechtsklick aufs UrBackup Symbol in der Taskleiste -> Status. Dann SHIFT+Rechtsklick auf das Symbol -> 'Internet-Server konfigurieren' (bzw. in den Einstellungen) und dort ebenfalls die Server-IP hinterlegen. UrBackup nutzt dann Port 55415 für die direkte Verbindung.",
+            keywords: ["urbackup", "client", "offline", "verbindung", "internet", "port", "firewall", "windows", "mac"]
+        },
+        {
+            title: "Fehler: Warte auf den lokalen Backup Server (UrBackup)",
+            content: "Wenn der Client meldet 'Warte auf den lokalen Backup Server' oder 'Authentication failure: Unknown client', kennt der Server (Mac Studio) diesen PC noch nicht oder die Internet-Einstellungen sind falsch. Lösung: 1. Im UrBackup Web-Dashboard (Port 55414) ganz unten auf 'Neuen Client hinzufügen' -> 'Internet/aktiver Client' klicken. Als Name EXAKT den Computernamen aus der Fehlermeldung eingeben (z.B. WMC-H-06-EM). 2. Das angezeigte Internet-Passwort kopieren. 3. Unter Windows via SHIFT+Rechtsklick auf das UrBackup-Icon -> 'Internet-Server konfigurieren' das neue Passwort eintragen. WICHTIG: Das Feld 'Internet server HTTP(s) proxy' MUSS zwingend leer bleiben!",
+            keywords: ["urbackup", "warte", "server", "lokal", "authentication", "failure", "proxy", "passwort", "windows"]
+        },
+        {
+            title: "Fehler am Server: err_file_system_case_insensitive (Mac)",
+            content: "Dieser Fehler taucht rot im Mac-Dashboard auf, wenn Docker versucht, Backups auf der normalen Mac-Festplatte zu speichern. Macs nutzen standardmäßig ein Dateisystem OHNE Groß-/Kleinschreibung (APFS), UrBackup verlangt aber zwingend eine Unterscheidung (Case-Sensitive). Lösung: 1. Öffne am Mac das 'Festplattendienstprogramm' (Disk Utility). 2. Klicke oben auf das '+' Symbol (Volume hinzufügen). 3. Nenne es z.B. 'UrBackupStorage' und wähle als Format 'APFS (Groß-/Kleinschreibung)' (Case-sensitive). 4. Öffne deine docker-compose.yml und ändere den Pfad bei den Volumes auf dein neues Volume (meist: `- /Volumes/UrBackupStorage:/backups`). 5. Starte den Docker-Container neu.",
+            keywords: ["urbackup", "error", "err_file_system_case_insensitive", "mac", "apfs", "case-sensitive", "festplattendienstprogramm", "docker", "volume"]
+        },
+        {
+            title: "Fehler: No permission to access '/backups/...'",
+            content: "Wenn UrBackup meldet, er habe keine Schreibrechte auf das Backup-Verzeichnis (insbesondere am Mac bei neu angelegten Volumes), muss man Docker diese Rechte manuell geben. Lösung: Öffne das Terminal am Mac. Anstatt das ganze Volume zu ändern (was oft zu 'Operation not permitted' bei versteckten Apple-Dateien wie .Trashes führt), gib nur den konkreten Ordnern Rechte: 'sudo chmod -R 777 /Volumes/DeinLaufwerk/backups' und 'sudo chmod -R 777 /Volumes/DeinLaufwerk/urbackup'. Starte danach den UrBackup Docker-Container neu.",
+            keywords: ["urbackup", "permission", "schreibrechte", "zugriff", "verweigert", "chmod", "operation not permitted", "trashes", "mac", "docker"]
         }
     ];
 

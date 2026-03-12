@@ -85,7 +85,7 @@ export default function Layout() {
                             if (item.isExternal) {
                                 // Externer Link (UrBackup Dashboard)
                                 // Assuming standard default port for UrBackup on the same host
-                                const urBackupUrl = window.location.protocol + "//" + window.location.hostname + ":55414";
+                                const urBackupUrl = window.location.protocol + "//192.168.178.62:55414";
                                 return (
                                     <a
                                         key={item.path}

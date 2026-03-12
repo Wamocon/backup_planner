@@ -52,6 +52,11 @@ async function runBackupJob(job, triggeredBy = 'schedule') {
                     args.push('--update');
                 }
 
+                // GoBD: Vollständige Kopie + Checksummen-Prüfung für Datenintegrität
+                if (job.backup_type === 'gobd') {
+                    args.push('--checksum');
+                }
+
                 const rcloneProcess = spawn(rclonePath, args);
 
                 runningProcesses.set(runId, rcloneProcess);

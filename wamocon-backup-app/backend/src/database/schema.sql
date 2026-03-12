@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS backup_jobs (
   name TEXT NOT NULL,
   source TEXT NOT NULL,          -- z.B. 'wmc-onedrive:'
   destination TEXT NOT NULL,     -- z.B. 'synology-nas:WMC/Backup' oder JSON für multi-target
-  backup_type TEXT NOT NULL CHECK(backup_type IN ('full', 'incremental', 'differential')),
+  backup_type TEXT NOT NULL CHECK(backup_type IN ('full', 'incremental', 'differential', 'gobd')),
   schedule TEXT NOT NULL,        -- cron expression, z.B. '0 18 * * *'
   retention_days INTEGER DEFAULT 90,
   is_active INTEGER DEFAULT 1,

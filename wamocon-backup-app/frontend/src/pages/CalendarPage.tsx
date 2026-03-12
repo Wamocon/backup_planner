@@ -32,6 +32,11 @@ const TYPE_COLORS: Record<string, { badge: string; dot: string; label: string }>
         dot: 'bg-orange-500',
         label: 'Differenziell',
     },
+    gobd: {
+        badge: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+        dot: 'bg-emerald-600',
+        label: 'GoBD',
+    },
 };
 
 const getTypeColors = (type: string) => TYPE_COLORS[type] ?? TYPE_COLORS.full;

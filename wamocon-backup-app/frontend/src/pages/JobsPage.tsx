@@ -49,13 +49,17 @@ export default function JobsPage() {
         setIsModalOpen(true);
     };
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (job: Job) => {
+        if (job.backup_type === 'gobd') {
+            alert('GoBD-konforme Backup-Pläne können aus Compliance-Gründen nicht gelöscht werden. Der Plan kann nur deaktiviert werden.');
+            return;
+        }
         if (!confirm('Diesen Backup-Plan wirklich löschen? Historische Läufe bleiben in der DB erhalten.')) return;
         try {
-            await client.delete(`/jobs/${id}`);
+            await client.delete(`/jobs/${job.id}`);
             fetchJobs();
-        } catch (e) {
-            alert('Löschen fehlgeschlagen.');
+        } catch (e: any) {
+            alert(e?.response?.data?.error || 'Löschen fehlgeschlagen.');
         }
     };
 
@@ -113,7 +117,7 @@ export default function JobsPage() {
                                             </div>
                                             <div>
                                                 <div className="text-sm font-bold text-slate-900">{job.name}</div>
-                                                <div className="text-xs font-medium text-slate-500 uppercase tracking-wide mt-1">{job.backup_type}</div>
+                                                <div className={`text-xs font-medium uppercase tracking-wide mt-1 ${job.backup_type === 'gobd' ? 'text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full w-fit' : 'text-slate-500'}`}>{job.backup_type === 'gobd' ? 'GoBD' : job.backup_type}</div>
                                             </div>
                                         </div>
                                     </td>
@@ -143,7 +147,7 @@ export default function JobsPage() {
                                                 <button onClick={() => handleOpenEdit(job)} className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors" title="Bearbeiten">
                                                     <Edit className="w-4 h-4" />
                                                 </button>
-                                                <button onClick={() => handleDelete(job.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Löschen">
+                                                <button onClick={() => handleDelete(job)} disabled={job.backup_type === 'gobd'} className={`p-2 rounded-lg transition-colors ${job.backup_type === 'gobd' ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'}`} title={job.backup_type === 'gobd' ? 'GoBD-Pläne können nicht gelöscht werden' : 'Löschen'}>
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>

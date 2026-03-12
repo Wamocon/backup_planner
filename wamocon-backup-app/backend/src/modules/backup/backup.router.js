@@ -38,11 +38,15 @@ router.put('/:id', requireAdmin, (req, res) => {
 });
 
 router.delete('/:id', requireAdmin, (req, res) => {
-    const success = backupService.deleteJob(req.params.id);
-    if (success) {
-        res.status(204).send();
-    } else {
-        res.status(404).json({ error: 'Job not found' });
+    try {
+        const success = backupService.deleteJob(req.params.id);
+        if (success) {
+            res.status(204).send();
+        } else {
+            res.status(404).json({ error: 'Job not found' });
+        }
+    } catch (err) {
+        res.status(400).json({ error: err.message });
     }
 });
 

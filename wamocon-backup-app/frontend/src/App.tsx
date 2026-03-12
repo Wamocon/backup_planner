@@ -6,6 +6,7 @@ import JobsPage from './pages/JobsPage';
 import LogsPage from './pages/LogsPage';
 import HelpPage from './pages/HelpPage';
 import CalendarPage from './pages/CalendarPage';
+import ArchitecturePage from './pages/ArchitecturePage';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/jobs" element={<JobsPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/logs" element={<LogsPage />} />
+          <Route path="/architecture" element={<ArchitecturePage />} />
           <Route path="/help" element={<HelpPage />} />
         </Route>
 

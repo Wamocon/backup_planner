@@ -24,11 +24,20 @@ function getJobById(id) {
     return attachNextRun(job);
 }
 
+// GoBD-Mindest-Aufbewahrung: 10 Jahre (3650 Tage)
+const GOBD_MIN_RETENTION_DAYS = 3650;
+
 function createJob(jobData, userId) {
     const { name, source, destination, backup_type, schedule, retention_days, is_active } = jobData;
 
     // Store array destination as JSON string if it's an array
     const destStr = Array.isArray(destination) ? JSON.stringify(destination) : destination;
+
+    // GoBD-Jobs: Mindest-Retention erzwingen
+    let effectiveRetention = retention_days || 90;
+    if (backup_type === 'gobd' && effectiveRetention < GOBD_MIN_RETENTION_DAYS) {
+        effectiveRetention = GOBD_MIN_RETENTION_DAYS;
+    }
 
     const stmt = db.prepare(`
         INSERT INTO backup_jobs (name, source, destination, backup_type, schedule, retention_days, is_active, created_by)
@@ -41,7 +50,7 @@ function createJob(jobData, userId) {
         destStr,
         backup_type || 'full',
         schedule,
-        retention_days || 90,
+        effectiveRetention,
         is_active === undefined ? 1 : is_active,
         userId
     );
@@ -57,10 +66,22 @@ function createJob(jobData, userId) {
 function updateJob(id, jobData) {
     const { name, source, destination, backup_type, schedule, retention_days, is_active } = jobData;
 
+    // Bestehenden Job prüfen: GoBD-Typ darf nicht zu einem anderen Typ geändert werden
+    const existingJob = db.prepare('SELECT backup_type FROM backup_jobs WHERE id = ?').get(id);
+    if (existingJob && existingJob.backup_type === 'gobd' && backup_type !== 'gobd') {
+        throw new Error('GoBD-konforme Backup-Pläne dürfen aus Compliance-Gründen nicht in einen anderen Typ geändert werden.');
+    }
+
     const destStr = Array.isArray(destination) ? JSON.stringify(destination) : destination;
 
+    // GoBD-Jobs: Mindest-Retention erzwingen
+    let effectiveRetention = retention_days;
+    if (backup_type === 'gobd' && effectiveRetention < GOBD_MIN_RETENTION_DAYS) {
+        effectiveRetention = GOBD_MIN_RETENTION_DAYS;
+    }
+
     const stmt = db.prepare(`
-        UPDATE backup_jobs 
+        UPDATE backup_jobs
         SET name = ?, source = ?, destination = ?, backup_type = ?, schedule = ?, retention_days = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
     `);
@@ -71,7 +92,7 @@ function updateJob(id, jobData) {
         destStr,
         backup_type,
         schedule,
-        retention_days,
+        effectiveRetention,
         is_active === undefined ? 1 : is_active,
         id
     );
@@ -88,8 +109,14 @@ function updateJob(id, jobData) {
 }
 
 function deleteJob(id) {
+    // GoBD-Jobs dürfen nicht gelöscht werden (Compliance-Schutz)
+    const job = db.prepare('SELECT backup_type FROM backup_jobs WHERE id = ?').get(id);
+    if (job && job.backup_type === 'gobd') {
+        throw new Error('GoBD-konforme Backup-Pläne dürfen aus Compliance-Gründen nicht gelöscht werden. Der Plan kann nur deaktiviert werden.');
+    }
+
     // We do NOT delete from backup_runs so history remains intact per requirements!
-    // db.prepare('DELETE FROM backup_runs WHERE job_id = ?').run(id); 
+    // db.prepare('DELETE FROM backup_runs WHERE job_id = ?').run(id);
     const result = db.prepare('DELETE FROM backup_jobs WHERE id = ?').run(id);
     if (result.changes > 0) {
         scheduler.unscheduleJob(id);

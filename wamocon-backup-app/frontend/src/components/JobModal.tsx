@@ -134,15 +134,23 @@ export default function JobModal({ isOpen, onClose, jobToEdit, onSaveSuccess }: 
                                         Backup-Typ
                                         <span className="group relative inline-block">
                                             <Info className="w-4 h-4 text-slate-400 cursor-help" />
-                                            <span className="absolute bottom-full right-0 mb-2 w-56 p-3 bg-slate-800 text-white text-xs rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all shadow-xl z-10">
-                                                Vollbackup kopiert alles neu. Inkrementell (--update) kopiert nur geänderte Dateien (empfohlen für Cloud).
+                                            <span className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-slate-800 text-white text-xs rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all shadow-xl z-10">
+                                                Vollbackup kopiert alles neu. Inkrementell (--update) kopiert nur geänderte Dateien (empfohlen für Cloud). GoBD sichert Buchhaltungsdaten mit Checksummen-Prüfung und 10 Jahren Mindest-Aufbewahrung.
                                             </span>
                                         </span>
                                     </label>
-                                    <select value={formData.backup_type} onChange={e => setFormData({ ...formData, backup_type: e.target.value })} className="block w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white">
+                                    <select value={formData.backup_type} onChange={e => {
+                                        const newType = e.target.value;
+                                        const updates: Partial<Job> = { backup_type: newType };
+                                        if (newType === 'gobd') {
+                                            updates.retention_days = 3650;
+                                        }
+                                        setFormData({ ...formData, ...updates });
+                                    }} className="block w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white">
                                         <option value="full">Vollbackup</option>
                                         <option value="incremental">Inkrementell (Update)</option>
                                         <option value="differential">Differenziell</option>
+                                        <option value="gobd">GoBD (Buchhaltungsdaten)</option>
                                     </select>
                                 </div>
 
@@ -172,12 +180,13 @@ export default function JobModal({ isOpen, onClose, jobToEdit, onSaveSuccess }: 
 
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Aufbewahrung (Retention)</label>
-                                    <select value={formData.retention_days} onChange={e => setFormData({ ...formData, retention_days: Number(e.target.value) })} className="block w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white">
+                                    <select value={formData.retention_days} onChange={e => setFormData({ ...formData, retention_days: Number(e.target.value) })} disabled={formData.backup_type === 'gobd'} className="block w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white disabled:opacity-60 disabled:cursor-not-allowed">
                                         <option value={7}>7 Tage</option>
                                         <option value={30}>1 Monat (30 Tage)</option>
                                         <option value={90}>3 Monate (90 Tage)</option>
                                         <option value={180}>6 Monate (180 Tage)</option>
                                         <option value={365}>1 Jahr (365 Tage)</option>
+                                        <option value={3650}>10 Jahre (GoBD)</option>
                                         <option value={99999}>Unbegrenzte Aufbewahrung</option>
                                     </select>
                                 </div>
@@ -190,6 +199,19 @@ export default function JobModal({ isOpen, onClose, jobToEdit, onSaveSuccess }: 
                                     </label>
                                 </div>
                             </div>
+
+                            {/* GoBD-Hinweis */}
+                            {formData.backup_type === 'gobd' && (
+                                <div className="col-span-1 sm:col-span-2 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+                                    <p className="font-semibold mb-1">GoBD-Compliance Hinweise:</p>
+                                    <ul className="list-disc list-inside space-y-1 text-xs text-amber-700">
+                                        <li>Aufbewahrungsfrist ist auf mindestens 10 Jahre festgelegt (gesetzliche Vorgabe)</li>
+                                        <li>Checksummen-Prüfung wird automatisch bei jedem Lauf durchgeführt</li>
+                                        <li>Dieser Plan kann nach Erstellung nicht gelöscht oder in einen anderen Typ geändert werden</li>
+                                        <li>Empfohlen für: Eingangs-/Ausgangsrechnungen, Belege, E-Mail-Archiv</li>
+                                    </ul>
+                                </div>
+                            )}
                         </div>
 
                         {/* Actions */}

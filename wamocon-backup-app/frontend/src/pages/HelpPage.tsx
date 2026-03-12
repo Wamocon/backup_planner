@@ -1,6 +1,71 @@
-import { LifeBuoy, ShieldCheck, Database, History, Info, BookOpen, Fingerprint } from 'lucide-react';
+import { useState } from 'react';
+import { LifeBuoy, ShieldCheck, Database, History, Info, BookOpen, Fingerprint, Search, ChevronRight } from 'lucide-react';
 
 export default function HelpPage() {
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const manualEntries = [
+        {
+            title: "Wie lege ich einen neuen Backup-Plan an?",
+            content: "Gehe navigiere in der linken Seitenleiste auf 'Backup Plans' oder direkt in den 'Kalender'. Klicke auf 'Neuen Plan erstellen'. Wähle einen Titel, deine zuvor konfigurierte Quelle (z.B. lokaler Pfad) und das Ziel (z.B. Cloud-Speicher). Danach legst du einen Cron-Zeitplan für die Automatisierung fest.",
+            keywords: ["job", "plan", "erstellen", "neu", "cron", "zeitplan", "kalender"]
+        },
+        {
+            title: "Was hat es mit Quelle und Ziel auf sich?",
+            content: "Die Quelle ist der Ordner oder das Laufwerk auf dem WAMOCON Mac Studio, das gesichert werden soll. Das Ziel ist oft ein rclone-Remote, z.B. 'wmc-onedrive:'. Diese Remotes müssen vorher über das Terminal auf dem Server konfiguriert werden ('rclone config').",
+            keywords: ["quelle", "ziel", "rclone", "remote", "pfad", "wmc-onedrive"]
+        },
+        {
+            title: "Was bedeutet die Cron-Syntax?",
+            content: "Cron ist ein Standardformat für Zeitpläne. '* * * * *' steht für Minute, Stunde, Tag im Monat, Monat, und Wochentag. Beispiele: '0 20 * * *' bedeutet jeden Tag um 20:00 Uhr. '0 2 * * 0' bedeutet jeden Sonntag um 02:00 Uhr.",
+            keywords: ["cron", "syntax", "zeitplan", "uhrzeit", "planung", "intervall"]
+        },
+        {
+            title: "Wo sehe ich, ob ein Backup erfolgreich war?",
+            content: "Auf der Seite 'Logs & Results' findest du ein ausführliches Protokoll aller bisherigen Ausführungen. Erfolgreiche Jobs sind grün markiert. Wenn ein Job rot markiert ist, klicke auf das Detail-Icon, um den genauen rclone-Output zur Fehlersuche einzusehen.",
+            keywords: ["logs", "fehler", "erfolg", "resultate", "protokoll", "fehlgeschlagen"]
+        },
+        {
+            title: "Was ist der Unterschied zwischen Sync und Copy?",
+            content: "Sync (Voll/Spiegelung) macht das Ziel exakt gleich zur Quelle – Dateien, die in der Quelle gelöscht werden, verschwinden auch im Ziel. Copy (Inkrementell) fügt nur neue oder geänderte Dateien hinzu, löscht jedoch im Ziel niemals etwas. Für Cloud-Backups wird fast immer Copy empfohlen.",
+            keywords: ["sync", "copy", "unterschied", "löschen", "inkrementell", "voll", "cloud"]
+        },
+        {
+            title: "Wie ändere ich die Aufbewahrungsdauer (Retention)?",
+            content: "Beim Bearbeiten eines Backup-Plans gibt es ein Feld 'Aufbewahrung (Tage)'. Wenn hier z.B. 30 eintragen wird, sorgt das System dafür, dass gelöschte Dateien aus der Quelle noch 30 Tage im Cloud-Papierkorb oder Backup-Ordner verbleiben (abhängig von der rclone und Ziel-Konfiguration).",
+            keywords: ["retention", "aufbewahrung", "löschen", "tage", "papierkorb"]
+        },
+        {
+            title: "UrBackup Client verbindet sich nicht (Offline)",
+            content: "Wenn der Windows/Mac Client nach der Installation im UrBackup-Dashboard (Port 55414) als offline angezeigt wird, blockiert vermutlich eine Firewall (z.B. macOS Firewall am Server oder Windows Defender am Client) die automatische UDP-Erkennung. Lösung: 1. Im UrBackup Server unter Einstellungen -> Server auf 'Mache Internet-Backups' stellen und die Server-IP (z.B. 192.168.178.62) eintragen. 2. Am Client (z.B. Windows) Rechtsklick aufs UrBackup Symbol in der Taskleiste -> Status. Dann SHIFT+Rechtsklick auf das Symbol -> 'Internet-Server konfigurieren' (bzw. in den Einstellungen) und dort ebenfalls die Server-IP hinterlegen. UrBackup nutzt dann Port 55415 für die direkte Verbindung.",
+            keywords: ["urbackup", "client", "offline", "verbindung", "internet", "port", "firewall", "windows", "mac"]
+        },
+        {
+            title: "Fehler: Warte auf den lokalen Backup Server (UrBackup)",
+            content: "Wenn der Client meldet 'Warte auf den lokalen Backup Server' oder 'Authentication failure: Unknown client', kennt der Server (Mac Studio) diesen PC noch nicht oder die Internet-Einstellungen sind falsch. Lösung: 1. Im UrBackup Web-Dashboard (Port 55414) ganz unten auf 'Neuen Client hinzufügen' -> 'Internet/aktiver Client' klicken. Als Name EXAKT den Computernamen aus der Fehlermeldung eingeben (z.B. WMC-H-06-EM). 2. Das angezeigte Internet-Passwort kopieren. 3. Unter Windows via SHIFT+Rechtsklick auf das UrBackup-Icon -> 'Internet-Server konfigurieren' das neue Passwort eintragen. WICHTIG: Das Feld 'Internet server HTTP(s) proxy' MUSS zwingend leer bleiben!",
+            keywords: ["urbackup", "warte", "server", "lokal", "authentication", "failure", "proxy", "passwort", "windows"]
+        },
+        {
+            title: "Fehler am Server: err_file_system_case_insensitive (Mac)",
+            content: "Dieser Fehler taucht rot im Mac-Dashboard auf, wenn Docker versucht, Backups auf der normalen Mac-Festplatte zu speichern. Macs nutzen standardmäßig ein Dateisystem OHNE Groß-/Kleinschreibung (APFS), UrBackup verlangt aber zwingend eine Unterscheidung (Case-Sensitive). Lösung: 1. Öffne am Mac das 'Festplattendienstprogramm' (Disk Utility). 2. Klicke oben auf das '+' Symbol (Volume hinzufügen). 3. Nenne es z.B. 'UrBackupStorage' und wähle als Format 'APFS (Groß-/Kleinschreibung)' (Case-sensitive). 4. Öffne deine docker-compose.yml und ändere den Pfad bei den Volumes auf dein neues Volume (meist: `- /Volumes/UrBackupStorage:/backups`). 5. Starte den Docker-Container neu.",
+            keywords: ["urbackup", "error", "err_file_system_case_insensitive", "mac", "apfs", "case-sensitive", "festplattendienstprogramm", "docker", "volume"]
+        },
+        {
+            title: "Fehler: No permission to access '/backups/...'",
+            content: "Wenn UrBackup meldet, er habe keine Schreibrechte auf das Backup-Verzeichnis (insbesondere am Mac bei neu angelegten Volumes), muss man Docker diese Rechte manuell geben. Lösung: Öffne das Terminal am Mac. Anstatt das ganze Volume zu ändern (was oft zu 'Operation not permitted' bei versteckten Apple-Dateien wie .Trashes führt), gib nur den konkreten Ordnern Rechte: 'sudo chmod -R 777 /Volumes/DeinLaufwerk/backups' und 'sudo chmod -R 777 /Volumes/DeinLaufwerk/urbackup'. Starte danach den UrBackup Docker-Container neu.",
+            keywords: ["urbackup", "permission", "schreibrechte", "zugriff", "verweigert", "chmod", "operation not permitted", "trashes", "mac", "docker"]
+        }
+    ];
+
+    const filteredEntries = manualEntries.filter(entry => {
+        const term = searchTerm.toLowerCase();
+        return (
+            entry.title.toLowerCase().includes(term) ||
+            entry.content.toLowerCase().includes(term) ||
+            entry.keywords.some(k => k.toLowerCase().includes(term))
+        );
+    });
+
     return (
         <div className="animate-in fade-in duration-500 max-w-5xl mx-auto space-y-10 pb-12">
 
@@ -213,6 +278,64 @@ services:
                                 <li>Während der Installation sucht der Client (im selben LAN) automatisch nach dem passenden UrBackup Server.</li>
                                 <li><strong>Internet-Backups:</strong> Damit Backups auch im Homeoffice funktionieren, muss in den Server-Einstellungen eine öffentliche IP / Domain oder ein internes VPN konfiguriert sein, die der Client erreichen kann.</li>
                             </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Handbuch & Suche */}
+            <section id="manual" className="scroll-mt-28 pb-12">
+                <div className="bg-slate-900 rounded-3xl p-8 sm:p-10 shadow-xl overflow-hidden relative">
+                    <div className="absolute -top-24 -right-24 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                    <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                    <div className="relative z-10">
+                        <div className="mb-8">
+                            <h2 className="text-3xl font-bold text-white flex items-center gap-3">
+                                <BookOpen className="w-8 h-8 text-blue-400" />
+                                Integriertes Handbuch
+                            </h2>
+                            <p className="text-slate-400 mt-2 text-lg">Suche nach Stichworten, um schnelle Hilfe zu bestimmten App-Funktionen zu finden.</p>
+                        </div>
+
+                        <div className="relative mb-10 max-w-2xl">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <Search className="h-5 w-5 text-slate-400" />
+                            </div>
+                            <input
+                                type="text"
+                                className="block w-full pl-11 pr-4 py-4 border border-slate-700 rounded-2xl leading-5 bg-slate-800/50 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-slate-800 transition-all font-medium"
+                                placeholder="Suche in Anleitungen (z.B. 'Cron', 'Quelle', 'Zeitplan')..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {filteredEntries.length > 0 ? (
+                                filteredEntries.map((entry, idx) => (
+                                    <div key={idx} className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 hover:bg-slate-800 transition-colors group">
+                                        <h3 className="text-lg font-bold text-white mb-3 flex items-start gap-2">
+                                            <ChevronRight className="w-5 h-5 text-blue-500 shrink-0 mt-0.5 group-hover:translate-x-1 transition-transform" />
+                                            {entry.title}
+                                        </h3>
+                                        <p className="text-slate-300 text-sm leading-relaxed pl-7">
+                                            {entry.content}
+                                        </p>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="col-span-1 md:col-span-2 text-center py-12 bg-slate-800/20 rounded-2xl border border-slate-700/50 border-dashed">
+                                    <Search className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+                                    <p className="text-slate-400 text-lg">Keine passenden Anleitungen für "{searchTerm}" gefunden.</p>
+                                    <button
+                                        onClick={() => setSearchTerm('')}
+                                        className="mt-4 text-blue-400 hover:text-blue-300 font-medium text-sm transition-colors"
+                                    >
+                                        Suche zurücksetzen
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

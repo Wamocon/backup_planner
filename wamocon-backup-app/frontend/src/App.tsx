@@ -5,6 +5,7 @@ import DashboardPage from './pages/DashboardPage';
 import JobsPage from './pages/JobsPage';
 import LogsPage from './pages/LogsPage';
 import HelpPage from './pages/HelpPage';
+import CalendarPage from './pages/CalendarPage';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/jobs" element={<JobsPage />} />
+          <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/logs" element={<LogsPage />} />
           <Route path="/help" element={<HelpPage />} />
         </Route>

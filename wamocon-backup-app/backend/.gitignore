@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Datenbank (wird zur Laufzeit erzeugt)
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+# Logs (werden zur Laufzeit erzeugt)
+data/logs/
+logs/
+*.log
+
+# Umgebungsvariablen (enthält Passwörter / Secrets)
+.env
+.env.*
+!.env.example
+
+# Editor
+.vscode/
+.idea/
+.DS_Store

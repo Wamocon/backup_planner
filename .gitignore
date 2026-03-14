@@ -1,0 +1,25 @@
+# Dependencies
+**/node_modules/
+
+# Datenbank (wird zur Laufzeit erzeugt)
+**/data/*.db
+**/data/*.db-shm
+**/data/*.db-wal
+
+# Logs
+**/data/logs/
+**/logs/
+*.log
+
+# Umgebungsvariablen
+**/.env
+**/.env.*
+!**/.env.example
+
+# Frontend Build
+wamocon-backup-app/frontend/dist/
+
+# Editor
+.vscode/
+.idea/
+.DS_Store

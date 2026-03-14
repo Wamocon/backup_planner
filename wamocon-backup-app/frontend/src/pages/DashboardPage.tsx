@@ -4,10 +4,42 @@ import Timeline from '../components/Timeline';
 import JobCard from '../components/JobCard';
 import JobModal from '../components/JobModal';
 import { useAuthStore } from '../store/auth.store';
-import { CheckCircle, XCircle, Loader2, Plus, ArrowRight, ShieldAlert, Server, HardDrive, RefreshCw, WifiOff, Play, Wifi } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Plus, ArrowRight, ShieldAlert, Server, HardDrive, RefreshCw, WifiOff, Play, Wifi, Cloud, Database } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
+
+interface MacStudioJobStatus {
+    running: boolean;
+    active: boolean;
+    pid: number | null;
+    logLastModified: string | null;
+}
+
+interface MacStudioLatestBackup {
+    date: string;
+    status: string;
+    duration: string | null;
+    errorCount: string | null;
+    startTime: string | null;
+    endTime: string | null;
+    filesAfter?: string;
+    sizeAfter?: string;
+}
+
+interface MacStudioStatus {
+    running: {
+        orchestrator: { running: boolean; pid: number | null };
+        gdrive: MacStudioJobStatus;
+        nas: MacStudioJobStatus;
+        anyRunning: boolean;
+        checkedAt: string;
+    };
+    latestBackup: {
+        gdrive: MacStudioLatestBackup;
+        nas: MacStudioLatestBackup;
+    };
+}
 
 interface UrBackupSummary {
     clients_total: number;
@@ -65,6 +97,12 @@ export default function DashboardPage() {
     const [liveData, setLiveData] = useState<{ status: LiveStatus[]; activities: { current: LiveActivity[]; last: any[] } } | null>(null);
     const liveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+    const [macStudioData, setMacStudioData] = useState<MacStudioStatus | null>(null);
+    const [macStudioError, setMacStudioError] = useState(false);
+    const [triggeringBackup, setTriggeringBackup] = useState<string | null>(null);
+    const [triggerMsg, setTriggerMsg] = useState<{ text: string; ok: boolean } | null>(null);
+    const macStudioIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const user = useAuthStore(state => state.user);
@@ -119,6 +157,32 @@ export default function DashboardPage() {
         }
     };
 
+    const fetchMacStudio = async () => {
+        try {
+            const resp = await client.get('/macstudio/status');
+            setMacStudioData(resp.data);
+            setMacStudioError(false);
+        } catch {
+            setMacStudioError(true);
+        }
+    };
+
+    const handleTriggerBackup = async (target: 'gdrive' | 'nas' | 'all') => {
+        if (!confirm(`MacStudio Backup "${target}" jetzt manuell starten?`)) return;
+        setTriggeringBackup(target);
+        setTriggerMsg(null);
+        try {
+            await client.post('/macstudio/trigger', { target });
+            setTriggerMsg({ text: `${target} Backup angestoßen`, ok: true });
+            setTimeout(fetchMacStudio, 3000);
+        } catch (e: any) {
+            setTriggerMsg({ text: e.response?.data?.details || 'Trigger fehlgeschlagen', ok: false });
+        } finally {
+            setTriggeringBackup(null);
+            setTimeout(() => setTriggerMsg(null), 6000);
+        }
+    };
+
     const fetchLiveData = async () => {
         try {
             const resp = await client.get('/urbackup/live');
@@ -132,8 +196,13 @@ export default function DashboardPage() {
         fetchDashboard();
         fetchUrbClients();
         fetchLiveData();
+        fetchMacStudio();
         liveIntervalRef.current = setInterval(fetchLiveData, 10000);
-        return () => { if (liveIntervalRef.current) clearInterval(liveIntervalRef.current); };
+        macStudioIntervalRef.current = setInterval(fetchMacStudio, 30000);
+        return () => {
+            if (liveIntervalRef.current) clearInterval(liveIntervalRef.current);
+            if (macStudioIntervalRef.current) clearInterval(macStudioIntervalRef.current);
+        };
     }, []);
 
     const handleRunJob = async (id: number) => {
@@ -317,6 +386,112 @@ export default function DashboardPage() {
                     )}
                 </div>
             )}
+
+            {/* MacStudio rclone Widget */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                    <div>
+                        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <span className="w-8 h-8 rounded-lg bg-teal-100 text-teal-600 flex items-center justify-center">
+                                <Cloud className="w-5 h-5" />
+                            </span>
+                            Cloud-Backups (MacStudio · rclone)
+                        </h2>
+                        <p className="text-sm text-slate-500 mt-1">OneDrive → Google Drive &amp; Synology NAS · Aktualisiert alle 30 Sek.</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        {macStudioError && (
+                            <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                                <WifiOff className="w-3.5 h-3.5" /> MacStudio nicht erreichbar
+                            </span>
+                        )}
+                        {triggerMsg && (
+                            <span className={`text-xs px-3 py-1.5 rounded-lg font-medium ${triggerMsg.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                                {triggerMsg.text}
+                            </span>
+                        )}
+                        {isAdmin && !macStudioError && (
+                            <button
+                                onClick={() => handleTriggerBackup('all')}
+                                disabled={triggeringBackup !== null || macStudioData?.running?.anyRunning}
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-teal-600 border border-teal-200 rounded-lg hover:bg-teal-50 disabled:opacity-50 transition-colors"
+                            >
+                                {triggeringBackup === 'all' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+                                Alle starten
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {macStudioError ? (
+                    <div className="p-8 text-center text-slate-400 text-sm flex flex-col items-center gap-2">
+                        <Cloud className="w-10 h-10 opacity-20" />
+                        <p>MacStudio Dashboard nicht erreichbar. Prüfe die Verbindung zu <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">192.168.178.62:9090</code>.</p>
+                    </div>
+                ) : !macStudioData ? (
+                    <div className="p-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-teal-500" /></div>
+                ) : (
+                    <div>
+                        {macStudioData.running.anyRunning && (
+                            <div className="mx-6 mt-4 bg-teal-50 border border-teal-200 rounded-xl p-3 flex items-center gap-2 text-sm text-teal-800">
+                                <Loader2 className="w-4 h-4 animate-spin text-teal-500 shrink-0" />
+                                <span>Backup läuft gerade auf dem MacStudio…</span>
+                            </div>
+                        )}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+                            {([
+                                { key: 'gdrive' as const, label: 'Google Drive', icon: Cloud, color: 'blue' },
+                                { key: 'nas' as const, label: 'Synology NAS', icon: Database, color: 'purple' },
+                            ]).map(({ key, label, icon: Icon, color }) => {
+                                const running = macStudioData.running[key];
+                                const latest = macStudioData.latestBackup[key];
+                                const isOk = latest?.status?.startsWith('SUCCESS');
+                                return (
+                                    <div key={key} className="p-6 flex flex-col gap-3">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`w-7 h-7 rounded-lg bg-${color}-50 text-${color}-600 flex items-center justify-center`}>
+                                                    <Icon className="w-4 h-4" />
+                                                </span>
+                                                <span className="font-semibold text-slate-800 text-sm">{label}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                {running?.running ? (
+                                                    <span className="flex items-center gap-1 text-xs text-teal-700 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-full font-medium">
+                                                        <Loader2 className="w-3 h-3 animate-spin" /> Läuft
+                                                    </span>
+                                                ) : (
+                                                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${isOk ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                                                        {latest?.status || '–'}
+                                                    </span>
+                                                )}
+                                                {isAdmin && (
+                                                    <button
+                                                        onClick={() => handleTriggerBackup(key)}
+                                                        disabled={triggeringBackup !== null || macStudioData.running.anyRunning}
+                                                        title={`${label} Backup jetzt starten`}
+                                                        className="p-1 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition-colors"
+                                                    >
+                                                        {triggeringBackup === key ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                        {latest && (
+                                            <div className="text-xs text-slate-500 space-y-1">
+                                                <div className="flex justify-between"><span>Letztes Backup</span><span className="font-medium text-slate-700">{latest.date}</span></div>
+                                                {latest.duration && <div className="flex justify-between"><span>Dauer</span><span className="font-medium text-slate-700">{latest.duration}</span></div>}
+                                                {latest.errorCount && <div className="flex justify-between"><span>Fehler</span><span className={`font-medium ${latest.errorCount === '0' ? 'text-emerald-600' : 'text-red-600'}`}>{latest.errorCount}</span></div>}
+                                                {latest.sizeAfter && <div className="flex justify-between"><span>Größe</span><span className="font-medium text-slate-700">{latest.sizeAfter}</span></div>}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* UrBackup Widget */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">

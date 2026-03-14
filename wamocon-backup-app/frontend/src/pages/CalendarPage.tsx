@@ -8,7 +8,7 @@ import { de } from 'date-fns/locale';
 import {
     Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronDown, ShieldCheck,
     Clock, HardDrive, Info, Plus, X, CheckCircle2, XCircle, AlertCircle,
-    Loader2, TrendingUp
+    Loader2, TrendingUp, Server, Database
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth.store';
@@ -52,10 +52,21 @@ const RUN_STATUS_CONFIG: Record<string, { icon: any; color: string; dotColor: st
 
 const getRunStatus = (status: string) => RUN_STATUS_CONFIG[status] ?? RUN_STATUS_CONFIG.failed;
 
+interface UrbCalEvent {
+    id: number;
+    client_name: string;
+    backup_type: string;
+    backup_time: string;
+    status: string;
+    size_bytes: number | null;
+    incremental: number;
+}
+
 export default function CalendarPage() {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [jobs, setJobs] = useState<any[]>([]);
     const [runs, setRuns] = useState<any[]>([]);
+    const [urbEvents, setUrbEvents] = useState<UrbCalEvent[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedDay, setSelectedDay] = useState<Date | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -100,12 +111,24 @@ export default function CalendarPage() {
         }
     };
 
+    const fetchUrbEvents = async (from: Date) => {
+        const daysAgo = Math.ceil(differenceInDays(new Date(), from));
+        const days = Math.max(daysAgo + 7, 1);
+        try {
+            const resp = await client.get(`/urbackup/calendar?days=${days}`);
+            setUrbEvents(resp.data);
+        } catch (err) {
+            console.error('urbackup calendar fetch failed:', err);
+        }
+    };
+
     useEffect(() => {
         fetchJobs();
     }, []);
 
     useEffect(() => {
         fetchRuns(startDate);
+        fetchUrbEvents(startDate);
         setSelectedDay(null); // Auswahl zurücksetzen beim Monat-Wechsel
     }, [currentDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -184,9 +207,17 @@ export default function CalendarPage() {
             catch { return false; }
         });
 
+    // --- Hilfsfunktion: URBackup-Events für einen Tag ---
+    const getUrbEventsForDay = (day: Date) =>
+        urbEvents.filter(e => {
+            try { return isSameDay(parseISO(e.backup_time), day); }
+            catch { return false; }
+        });
+
     // --- V4: Detail-Daten für ausgewählten Tag ---
     const selectedDayJobs = selectedDay ? getPlannedJobsForDay(selectedDay) : [];
     const selectedDayRuns = selectedDay ? getRunsForDay(selectedDay) : [];
+    const selectedDayUrb = selectedDay ? getUrbEventsForDay(selectedDay) : [];
 
     // --- Kalender-Grid aufbauen ---
     const rows = [];
@@ -203,6 +234,7 @@ export default function CalendarPage() {
             const isWeekend = i === 5 || i === 6; // Option B: Sa/So
             const dayJobs = isCurrentMonth ? getPlannedJobsForDay(currentDay) : [];
             const dayRuns = isCurrentMonth ? getRunsForDay(currentDay) : [];
+            const dayUrb = isCurrentMonth ? getUrbEventsForDay(currentDay) : [];
 
             days.push(
                 <div
@@ -235,19 +267,26 @@ export default function CalendarPage() {
                             {format(currentDay, 'd')}
                         </span>
 
-                        {/* V3: Status-Dots für tatsächliche Runs */}
-                        {isCurrentMonth && dayRuns.length > 0 && (
+                        {/* Status-Dots für tatsächliche Runs + URBackup-Events */}
+                        {isCurrentMonth && (dayRuns.length > 0 || dayUrb.length > 0) && (
                             <div className="flex gap-0.5 mt-1 flex-wrap justify-end max-w-[40px]">
-                                {dayRuns.slice(0, 4).map((run, idx) => {
+                                {dayRuns.slice(0, 3).map((run, idx) => {
                                     const s = getRunStatus(run.status);
                                     return (
                                         <span
-                                            key={idx}
+                                            key={`r${idx}`}
                                             className={`w-2 h-2 rounded-full ${s.dotColor}`}
-                                            title={`${run.job_name}: ${s.label}`}
+                                            title={`rclone: ${run.job_name}`}
                                         />
                                     );
                                 })}
+                                {dayUrb.slice(0, 3).map((e, idx) => (
+                                    <span
+                                        key={`u${idx}`}
+                                        className={`w-2 h-2 rounded-full border border-white ${e.status === 'ok' ? 'bg-teal-400' : 'bg-amber-400'}`}
+                                        title={`URBackup: ${e.client_name} (${e.backup_type})`}
+                                    />
+                                ))}
                             </div>
                         )}
                     </div>
@@ -427,13 +466,20 @@ export default function CalendarPage() {
                             </span>
                         ))}
                         <span className="text-xs text-slate-300 hidden sm:inline mx-1">|</span>
-                        <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Runs:</span>
+                        <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">rclone:</span>
                         {[['success', 'Erfolgreich'], ['failed', 'Fehler'], ['stopped', 'Gestoppt']].map(([status, label]) => (
                             <span key={status} className="inline-flex items-center gap-1.5 text-xs text-slate-500">
                                 <span className={`w-2 h-2 rounded-full ${RUN_STATUS_CONFIG[status].dotColor}`} />
                                 {label}
                             </span>
                         ))}
+                        <span className="text-xs text-slate-300 hidden sm:inline mx-1">|</span>
+                        <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                            <span className="w-2 h-2 rounded-full bg-teal-400" /> URBackup OK
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                            <span className="w-2 h-2 rounded-full bg-amber-400" /> URBackup Partial
+                        </span>
                         <span className="text-xs text-slate-300 ml-auto hidden sm:inline">Klick auf Tag für Details</span>
                     </div>
                 </div>
@@ -517,8 +563,39 @@ export default function CalendarPage() {
                                     </div>
                                 )}
 
+                                {/* URBackup-Events */}
+                                {selectedDayUrb.length > 0 && (
+                                    <div>
+                                        <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                            <Server className="w-3.5 h-3.5" />
+                                            URBackup Backups ({selectedDayUrb.length})
+                                        </h4>
+                                        <div className="space-y-2">
+                                            {selectedDayUrb.map((e, idx) => (
+                                                <div key={idx} className={`flex items-center gap-3 p-3 rounded-xl border ${
+                                                    e.status === 'ok' ? 'bg-teal-50 border-teal-100 text-teal-800' : 'bg-amber-50 border-amber-100 text-amber-800'
+                                                }`}>
+                                                    {e.backup_type === 'file'
+                                                        ? <Database className="w-4 h-4 shrink-0" />
+                                                        : <Server className="w-4 h-4 shrink-0" />}
+                                                    <div className="min-w-0">
+                                                        <div className="text-sm font-semibold truncate">{e.client_name}</div>
+                                                        <div className="text-xs opacity-70">
+                                                            {e.backup_type}{e.incremental ? ' · Inkrementell' : ''}
+                                                            {' · '}{format(parseISO(e.backup_time), 'HH:mm')} Uhr
+                                                        </div>
+                                                    </div>
+                                                    <span className={`ml-auto text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
+                                                        e.status === 'ok' ? 'bg-teal-200 text-teal-800' : 'bg-amber-200 text-amber-800'
+                                                    }`}>{e.status}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Leer-Zustand */}
-                                {selectedDayJobs.length === 0 && selectedDayRuns.length === 0 && (
+                                {selectedDayJobs.length === 0 && selectedDayRuns.length === 0 && selectedDayUrb.length === 0 && (
                                     <div className="text-center py-10">
                                         <CalendarIcon className="w-12 h-12 text-slate-200 mx-auto mb-3" />
                                         <p className="text-sm text-slate-400">Kein Backup für diesen Tag geplant.</p>

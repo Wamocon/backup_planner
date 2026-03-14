@@ -8,6 +8,7 @@ const backupRouter = require('./modules/backup/backup.router');
 const dashboardRouter = require('./modules/dashboard/dashboard.router');
 const runsRouter = require('./modules/backup/runs.router');
 const urbackupRouter = require('./modules/urbackup/urbackup.router');
+const devicesRouter = require('./modules/devices/devices.router');
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use('/api/jobs', backupRouter);
 app.use('/api/runs', runsRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/urbackup', urbackupRouter);
+app.use('/api/devices', devicesRouter);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
@@ -29,9 +31,13 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3001;
 
-// Initialize Cron Scheduler
+// Initialize Cron Scheduler (rclone backup jobs)
 const scheduler = require('./modules/backup/scheduler.service');
 scheduler.initializeScheduler();
+
+// Initialize URBackup Sync Scheduler
+const urbackupSync = require('./modules/urbackup/urbackup.sync.service');
+urbackupSync.initializeSyncScheduler();
 
 app.listen(PORT, () => {
     console.log(`Backend server running on port ${PORT}`);

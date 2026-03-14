@@ -32,7 +32,9 @@ try {
 } catch (e) {
     // 'gobd' not accepted yet - recreate table with updated constraint
     console.log('[Migration] Updating backup_jobs table to support gobd backup type...');
+    db.pragma('foreign_keys = OFF');
     db.exec(`
+        DROP TABLE IF EXISTS backup_jobs_new;
         CREATE TABLE backup_jobs_new (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -50,6 +52,7 @@ try {
         DROP TABLE backup_jobs;
         ALTER TABLE backup_jobs_new RENAME TO backup_jobs;
     `);
+    db.pragma('foreign_keys = ON');
     console.log('[Migration] backup_jobs table updated successfully.');
 }
 

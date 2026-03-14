@@ -1,6 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { X, Info } from 'lucide-react';
 import client from '../api/client';
+import { CronExpressionParser } from 'cron-parser';
+import { format } from 'date-fns';
+import { de } from 'date-fns/locale';
+import { useToastStore } from '../store/toast.store';
+
+const getCronPreview = (cronStr: string): string => {
+    try {
+        const interval = CronExpressionParser.parse(cronStr);
+        const runs = [interval.next().toDate(), interval.next().toDate(), interval.next().toDate()];
+        return runs.map(d => format(d, 'EEE dd.MM. HH:mm', { locale: de })).join('  ·  ');
+    } catch {
+        return 'Ungültiger Cron-Ausdruck';
+    }
+};
 
 interface Job {
     id?: number;
@@ -27,6 +41,7 @@ export default function JobModal({ isOpen, onClose, jobToEdit, onSaveSuccess }: 
     });
     const [customCron, setCustomCron] = useState(false);
     const [loading, setLoading] = useState(false);
+    const addToast = useToastStore(s => s.addToast);
 
     useEffect(() => {
         if (jobToEdit) {
@@ -61,8 +76,8 @@ export default function JobModal({ isOpen, onClose, jobToEdit, onSaveSuccess }: 
             }
             onSaveSuccess();
             onClose();
-        } catch (err) {
-            alert('Failed to save job');
+        } catch (err: any) {
+            addToast(err?.response?.data?.error || 'Fehler beim Speichern des Plans.', 'error');
         } finally {
             setLoading(false);
         }
@@ -171,9 +186,20 @@ export default function JobModal({ isOpen, onClose, jobToEdit, onSaveSuccess }: 
                                             <option value="custom">Benutzerdefiniert (Cron)...</option>
                                         </select>
                                     ) : (
-                                        <div className="flex gap-2">
-                                            <input type="text" required value={formData.schedule} onChange={e => setFormData({ ...formData, schedule: e.target.value })} className="block w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50" placeholder="0 18 * * *" />
-                                            <button type="button" onClick={() => setCustomCron(false)} className="px-4 py-3 border border-slate-200 rounded-xl text-sm bg-slate-100 hover:bg-slate-200 font-medium">Zurück</button>
+                                        <div>
+                                            <div className="flex gap-2">
+                                                <input type="text" required value={formData.schedule} onChange={e => setFormData({ ...formData, schedule: e.target.value })} className="block w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50" placeholder="0 18 * * *" />
+                                                <button type="button" onClick={() => setCustomCron(false)} className="px-4 py-3 border border-slate-200 rounded-xl text-sm bg-slate-100 hover:bg-slate-200 font-medium">Zurück</button>
+                                            </div>
+                                            {(() => {
+                                                const preview = getCronPreview(formData.schedule);
+                                                const isInvalid = preview === 'Ungültiger Cron-Ausdruck';
+                                                return (
+                                                    <p className="text-xs mt-1.5 text-slate-500">
+                                                        Nächste Läufe: <span className={isInvalid ? 'text-red-500 font-medium' : 'text-emerald-600 font-medium'}>{preview}</span>
+                                                    </p>
+                                                );
+                                            })()}
                                         </div>
                                     )}
                                 </div>

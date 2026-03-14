@@ -8,10 +8,12 @@ import HelpPage from './pages/HelpPage';
 import CalendarPage from './pages/CalendarPage';
 import ArchitecturePage from './pages/ArchitecturePage';
 import DevicesPage from './pages/DevicesPage';
+import ToastContainer from './components/Toast';
 
 function App() {
   return (
     <Router>
+      <ToastContainer />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
 

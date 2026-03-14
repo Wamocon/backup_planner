@@ -4,6 +4,8 @@ import Timeline from '../components/Timeline';
 import JobCard from '../components/JobCard';
 import JobModal from '../components/JobModal';
 import { useAuthStore } from '../store/auth.store';
+import { useToastStore } from '../store/toast.store';
+import ConfirmModal from '../components/ConfirmModal';
 import { CheckCircle, XCircle, Loader2, Plus, ArrowRight, ShieldAlert, Server, HardDrive, RefreshCw, WifiOff, Play, Wifi, Cloud, Database } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow, parseISO } from 'date-fns';
@@ -93,20 +95,23 @@ export default function DashboardPage() {
     const [syncing, setSyncing] = useState(false);
     const [urbClients, setUrbClients] = useState<UrbClient[]>([]);
     const [startingBackup, setStartingBackup] = useState<string | null>(null);
-    const [backupMsg, setBackupMsg] = useState<{ text: string; ok: boolean } | null>(null);
     const [liveData, setLiveData] = useState<{ status: LiveStatus[]; activities: { current: LiveActivity[]; last: any[] } } | null>(null);
     const liveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const [macStudioData, setMacStudioData] = useState<MacStudioStatus | null>(null);
     const [macStudioError, setMacStudioError] = useState(false);
     const [triggeringBackup, setTriggeringBackup] = useState<string | null>(null);
-    const [triggerMsg, setTriggerMsg] = useState<{ text: string; ok: boolean } | null>(null);
     const macStudioIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const user = useAuthStore(state => state.user);
     const isAdmin = user?.role === 'admin';
+    const addToast = useToastStore(s => s.addToast);
+    const [dialog, setDialog] = useState<{
+        open: boolean; title: string; message: string; variant: 'danger' | 'primary'; onConfirm: () => void;
+    }>({ open: false, title: '', message: '', variant: 'primary', onConfirm: () => {} });
+    const closeDialog = () => setDialog(d => ({ ...d, open: false }));
 
     const fetchDashboard = async () => {
         try {
@@ -141,19 +146,17 @@ export default function DashboardPage() {
     const handleStartBackup = async (clientId: number, backupType: string) => {
         const key = `${clientId}-${backupType}`;
         setStartingBackup(key);
-        setBackupMsg(null);
         try {
             const resp = await client.post('/urbackup/start', { clientId, backupType });
             if (resp.data.success) {
-                setBackupMsg({ text: `Backup gestartet (${backupType.replace('_', ' ')})`, ok: true });
+                addToast(`Backup gestartet (${backupType.replace('_', ' ')}).`, 'success');
             } else {
-                setBackupMsg({ text: `Backup konnte nicht gestartet werden – Client offline?`, ok: false });
+                addToast('Backup konnte nicht gestartet werden – Client offline?', 'error');
             }
         } catch (e: any) {
-            setBackupMsg({ text: e.response?.data?.details || 'Backup-Start fehlgeschlagen', ok: false });
+            addToast(e.response?.data?.details || 'Backup-Start fehlgeschlagen.', 'error');
         } finally {
             setStartingBackup(null);
-            setTimeout(() => setBackupMsg(null), 5000);
         }
     };
 
@@ -167,20 +170,26 @@ export default function DashboardPage() {
         }
     };
 
-    const handleTriggerBackup = async (target: 'gdrive' | 'nas' | 'all') => {
-        if (!confirm(`MacStudio Backup "${target}" jetzt manuell starten?`)) return;
-        setTriggeringBackup(target);
-        setTriggerMsg(null);
-        try {
-            await client.post('/macstudio/trigger', { target });
-            setTriggerMsg({ text: `${target} Backup angestoßen`, ok: true });
-            setTimeout(fetchMacStudio, 3000);
-        } catch (e: any) {
-            setTriggerMsg({ text: e.response?.data?.details || 'Trigger fehlgeschlagen', ok: false });
-        } finally {
-            setTriggeringBackup(null);
-            setTimeout(() => setTriggerMsg(null), 6000);
-        }
+    const handleTriggerBackup = (target: 'gdrive' | 'nas' | 'all') => {
+        const label = target === 'all' ? 'Alle Backups' : target === 'gdrive' ? 'Google Drive' : 'NAS';
+        setDialog({
+            open: true,
+            title: 'MacStudio Backup starten',
+            message: `"${label}" Backup jetzt manuell starten?`,
+            variant: 'primary',
+            onConfirm: async () => {
+                setTriggeringBackup(target);
+                try {
+                    await client.post('/macstudio/trigger', { target });
+                    addToast(`${label} Backup wurde angestossen.`, 'success');
+                    setTimeout(fetchMacStudio, 3000);
+                } catch (e: any) {
+                    addToast(e.response?.data?.details || 'Trigger fehlgeschlagen.', 'error');
+                } finally {
+                    setTriggeringBackup(null);
+                }
+            }
+        });
     };
 
     const fetchLiveData = async () => {
@@ -205,21 +214,27 @@ export default function DashboardPage() {
         };
     }, []);
 
-    const handleRunJob = async (id: number) => {
-        if (!confirm('Möchtest du dieses Backup wirklich jetzt manuell starten?')) return;
-        try {
-            await client.post(`/jobs/${id}/run`);
-            alert('Backup-Job erfolgreich manuell in die Warteschlange gestellt.');
-            // Refresh to snag the new "running" execution log locally
-            setTimeout(fetchDashboard, 1000);
-        } catch (e) {
-            alert('Starten des Jobs fehlgeschlagen.');
-        }
+    const handleRunJob = (id: number) => {
+        const job = data?.upcoming?.find((j: any) => j.id === id);
+        setDialog({
+            open: true,
+            title: 'Backup jetzt starten',
+            message: `"${job?.name || 'Backup'}" jetzt manuell außerhalb des Zeitplans starten?`,
+            variant: 'primary',
+            onConfirm: async () => {
+                try {
+                    await client.post(`/jobs/${id}/run`);
+                    addToast('Backup-Job erfolgreich in die Warteschlange gestellt.', 'success');
+                    setTimeout(fetchDashboard, 1000);
+                } catch {
+                    addToast('Starten des Jobs fehlgeschlagen.', 'error');
+                }
+            }
+        });
     };
 
     const handleEditJob = () => {
-        // Navigation hint for users trying to edit on dashboard
-        alert("Um Jobs zu bearbeiten oder zu löschen, wechsle bitte in den Tab 'Backup Plans'.");
+        addToast("Um Jobs zu bearbeiten, wechsle bitte zu 'Backup-Pläne'.", 'info');
     };
 
     if (loading) {
@@ -426,11 +441,6 @@ export default function DashboardPage() {
                                 <WifiOff className="w-3.5 h-3.5" /> MacStudio nicht erreichbar
                             </span>
                         )}
-                        {triggerMsg && (
-                            <span className={`text-xs px-3 py-1.5 rounded-lg font-medium ${triggerMsg.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                                {triggerMsg.text}
-                            </span>
-                        )}
                         {isAdmin && !macStudioError && (
                             <button
                                 onClick={() => handleTriggerBackup('all')}
@@ -583,11 +593,6 @@ export default function DashboardPage() {
                             <div className="border-t border-slate-100">
                                 <div className="px-6 py-3 bg-slate-50/50 flex justify-between items-center">
                                     <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Backup manuell starten</span>
-                                    {backupMsg && (
-                                        <span className={`text-xs px-3 py-1 rounded-lg font-medium ${backupMsg.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                                            {backupMsg.text}
-                                        </span>
-                                    )}
                                 </div>
                                 <ul className="divide-y divide-slate-50">
                                     {urbClients.map(c => {
@@ -696,6 +701,14 @@ export default function DashboardPage() {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onSaveSuccess={fetchDashboard}
+            />
+            <ConfirmModal
+                isOpen={dialog.open}
+                title={dialog.title}
+                message={dialog.message}
+                variant={dialog.variant}
+                onConfirm={dialog.onConfirm}
+                onCancel={closeDialog}
             />
         </div>
     );

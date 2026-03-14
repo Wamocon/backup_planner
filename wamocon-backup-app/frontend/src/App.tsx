@@ -7,6 +7,7 @@ import LogsPage from './pages/LogsPage';
 import HelpPage from './pages/HelpPage';
 import CalendarPage from './pages/CalendarPage';
 import ArchitecturePage from './pages/ArchitecturePage';
+import DevicesPage from './pages/DevicesPage';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/logs" element={<LogsPage />} />
           <Route path="/architecture" element={<ArchitecturePage />} />
+          <Route path="/devices" element={<DevicesPage />} />
           <Route path="/help" element={<HelpPage />} />
         </Route>
 

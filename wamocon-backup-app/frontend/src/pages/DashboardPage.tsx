@@ -1,37 +1,69 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import client from '../api/client';
 import Timeline from '../components/Timeline';
 import JobCard from '../components/JobCard';
 import JobModal from '../components/JobModal';
 import { useAuthStore } from '../store/auth.store';
-import { CheckCircle, XCircle, Loader2, Plus, ArrowRight, ShieldAlert } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Plus, ArrowRight, ShieldAlert, Server, HardDrive, RefreshCw, WifiOff, Play, Wifi } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { formatDistanceToNow, parseISO } from 'date-fns';
+import { de } from 'date-fns/locale';
+
+interface UrBackupSummary {
+    clients_total: number;
+    clients_online: number;
+    clients_file_ok: number;
+    clients_image_ok: number;
+    recent_backups: { client_name: string; backup_type: string; backup_time: string; status: string }[];
+    sync: { last_sync_at: string | null; last_sync_error: string | null; schedule: string };
+}
+
+interface LiveActivity {
+    clientid: number;
+    name: string;
+    action: string;
+    percent_done: number;
+    eta_ms: number;
+    paused: boolean;
+}
+
+interface LiveStatus {
+    id: number;
+    name: string;
+    online: boolean;
+    status: number;
+}
+
+interface UrbClient {
+    id: number;
+    name: string;
+    online: boolean;
+    file_ok: number;
+    image_ok: number;
+    file_disabled: number;
+    image_disabled: number;
+    last_file_backup: string | null;
+    last_image_backup: string | null;
+}
 
 interface DashboardData {
     jobs_count: number;
     last_runs: any[];
     upcoming: any[];
     health: { status: string; version?: string; error?: string };
-}
-
-interface UrBackupClient {
-    id: number;
-    name: string;
-    online: boolean;
-    lastbackup: string;
-    client_version: string;
-}
-
-interface UrBackupStatus {
-    clients: UrBackupClient[];
-    error?: string;
+    urbackup: UrBackupSummary;
 }
 
 export default function DashboardPage() {
     const [data, setData] = useState<DashboardData | null>(null);
-    const [urbackupStatus, setUrbackupStatus] = useState<UrBackupStatus | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [syncing, setSyncing] = useState(false);
+    const [urbClients, setUrbClients] = useState<UrbClient[]>([]);
+    const [startingBackup, setStartingBackup] = useState<string | null>(null);
+    const [backupMsg, setBackupMsg] = useState<{ text: string; ok: boolean } | null>(null);
+    const [liveData, setLiveData] = useState<{ status: LiveStatus[]; activities: { current: LiveActivity[]; last: any[] } } | null>(null);
+    const liveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -42,24 +74,6 @@ export default function DashboardPage() {
         try {
             const resp = await client.get('/dashboard');
             setData(resp.data);
-
-            // Fetch UrBackup status gracefully
-            try {
-                const urResp = await client.get('/urbackup/status');
-                // The wrapper might return the array directly or an object, let's assume it has an 'extra_clients' or similar array if successful. 
-                // Often the getStatus() returns an array of clients directly.
-                if (Array.isArray(urResp.data)) {
-                    setUrbackupStatus({ clients: urResp.data });
-                } else if (urResp.data && urResp.data.extra_clients) {
-                    setUrbackupStatus({ clients: urResp.data.extra_clients });
-                } else {
-                    setUrbackupStatus({ clients: [] });
-                }
-            } catch (urErr: any) {
-                console.warn('UrBackup API not reachable yet:', urErr.message);
-                setUrbackupStatus({ clients: [], error: 'UrBackup API nicht erreichbar' });
-            }
-
         } catch (err: any) {
             setError(err.response?.data?.error || 'Failed to fetch dashboard data');
         } finally {
@@ -67,8 +81,59 @@ export default function DashboardPage() {
         }
     };
 
+    const fetchUrbClients = async () => {
+        try {
+            const resp = await client.get('/urbackup/clients');
+            setUrbClients(resp.data.clients || []);
+        } catch {
+            // silently ignore — optional widget
+        }
+    };
+
+    const handleManualSync = async () => {
+        setSyncing(true);
+        try {
+            await client.post('/urbackup/sync');
+            setTimeout(() => { fetchDashboard(); fetchUrbClients(); setSyncing(false); }, 3000);
+        } catch {
+            setSyncing(false);
+        }
+    };
+
+    const handleStartBackup = async (clientId: number, backupType: string) => {
+        const key = `${clientId}-${backupType}`;
+        setStartingBackup(key);
+        setBackupMsg(null);
+        try {
+            const resp = await client.post('/urbackup/start', { clientId, backupType });
+            if (resp.data.success) {
+                setBackupMsg({ text: `Backup gestartet (${backupType.replace('_', ' ')})`, ok: true });
+            } else {
+                setBackupMsg({ text: `Backup konnte nicht gestartet werden – Client offline?`, ok: false });
+            }
+        } catch (e: any) {
+            setBackupMsg({ text: e.response?.data?.details || 'Backup-Start fehlgeschlagen', ok: false });
+        } finally {
+            setStartingBackup(null);
+            setTimeout(() => setBackupMsg(null), 5000);
+        }
+    };
+
+    const fetchLiveData = async () => {
+        try {
+            const resp = await client.get('/urbackup/live');
+            setLiveData(resp.data);
+        } catch {
+            // silently ignore
+        }
+    };
+
     useEffect(() => {
         fetchDashboard();
+        fetchUrbClients();
+        fetchLiveData();
+        liveIntervalRef.current = setInterval(fetchLiveData, 10000);
+        return () => { if (liveIntervalRef.current) clearInterval(liveIntervalRef.current); };
     }, []);
 
     const handleRunJob = async (id: number) => {
@@ -104,13 +169,14 @@ export default function DashboardPage() {
     const hasLocal = destinations.some(d => d?.includes('nas'));
     const meets321 = hasCloud && hasLocal;
 
-    // Helper to format timestamps from UrBackup
-    const formatTimestamp = (ts: any) => {
-        if (!ts) return 'Nie';
-        if (typeof ts === 'string' && ts.includes('-')) return ts; // Already formatted
-        return new Date(ts * 1000).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    };
+    const urbackup = data?.urbackup;
+    const hasUrBackupData = urbackup && urbackup.clients_total > 0;
 
+    const formatRelative = (iso: string | null) => {
+        if (!iso) return 'Nie';
+        try { return formatDistanceToNow(parseISO(iso), { addSuffix: true, locale: de }); }
+        catch { return iso; }
+    };
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
@@ -186,63 +252,219 @@ export default function DashboardPage() {
                 </div>
             </div>
 
+            {/* Live URBackup Status + aktive Backups */}
+            {liveData && (
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                        <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                            <span className="relative flex h-2.5 w-2.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                            </span>
+                            Live – URBackup Status
+                        </h2>
+                        <span className="text-xs text-slate-400">Aktualisiert alle 10 Sek.</span>
+                    </div>
+
+                    {/* Aktive Backups mit Fortschritt */}
+                    {liveData.activities.current.length > 0 ? (
+                        <div className="divide-y divide-slate-50">
+                            {liveData.activities.current.map((act, i) => {
+                                const pct = Math.round(act.percent_done ?? 0);
+                                const etaSec = act.eta_ms > 0 ? Math.round(act.eta_ms / 1000) : null;
+                                const etaLabel = etaSec != null
+                                    ? etaSec < 60 ? `${etaSec}s` : etaSec < 3600 ? `${Math.round(etaSec/60)}min` : `${(etaSec/3600).toFixed(1)}h`
+                                    : '–';
+                                return (
+                                    <div key={i} className="px-6 py-4">
+                                        <div className="flex justify-between items-center mb-1.5">
+                                            <div className="flex items-center gap-2">
+                                                <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" />
+                                                <span className="font-semibold text-slate-800 text-sm">{act.name}</span>
+                                                <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{act.action}</span>
+                                                {act.paused && <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Pausiert</span>}
+                                            </div>
+                                            <div className="flex items-center gap-3 text-sm">
+                                                <span className="font-bold text-slate-800">{pct}%</span>
+                                                <span className="text-slate-400 text-xs">ETA: {etaLabel}</span>
+                                            </div>
+                                        </div>
+                                        <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                                            <div
+                                                className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-blue-400 transition-all duration-500"
+                                                style={{ width: `${pct}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="px-6 py-3 flex flex-wrap gap-4">
+                            {liveData.status.length === 0 ? (
+                                <p className="text-sm text-slate-400 italic">Keine Clients gefunden</p>
+                            ) : liveData.status.map((s) => (
+                                <div key={s.id} className="flex items-center gap-2 text-sm">
+                                    <Wifi className={`w-4 h-4 ${s.online ? 'text-emerald-500' : 'text-slate-300'}`} />
+                                    <span className={`font-medium ${s.online ? 'text-slate-800' : 'text-slate-400'}`}>{s.name}</span>
+                                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${s.online ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                                        {s.online ? 'Online' : 'Offline'}
+                                    </span>
+                                </div>
+                            ))}
+                            <span className="text-xs text-slate-400 ml-auto italic self-center">Kein aktives Backup</span>
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* UrBackup Widget */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <div>
                         <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                             <span className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
-                                <ShieldAlert className="w-5 h-5" />
+                                <Server className="w-5 h-5" />
                             </span>
-                            Notebook Backups (UrBackup)
+                            Endgerät-Backups (UrBackup)
                         </h2>
-                        <p className="text-sm text-slate-500 mt-1">Live Status der Endgeräte (Windows & macOS)</p>
+                        <p className="text-sm text-slate-500 mt-1">
+                            Gecachter Status · zuletzt synchronisiert {formatRelative(urbackup?.sync?.last_sync_at ?? null)}
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        {urbackup?.sync?.last_sync_error && (
+                            <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                                <WifiOff className="w-3.5 h-3.5" />
+                                URBackup nicht erreichbar
+                            </span>
+                        )}
+                        {isAdmin && (
+                            <button
+                                onClick={handleManualSync}
+                                disabled={syncing}
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 disabled:opacity-50 transition-colors"
+                            >
+                                <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
+                                {syncing ? 'Sync läuft...' : 'Jetzt synchronisieren'}
+                            </button>
+                        )}
+                        <Link to="/logs?tab=urbackup" className="text-xs text-slate-500 hover:text-indigo-600 font-medium flex items-center gap-1">
+                            Alle Logs <ArrowRight className="w-3 h-3" />
+                        </Link>
                     </div>
                 </div>
 
-                <div className="p-0">
-                    {urbackupStatus?.error ? (
-                        <div className="p-6 text-orange-600 flex items-center gap-2 text-sm bg-orange-50/50">
-                            <XCircle className="w-5 h-5" />
-                            Verbindung zum UrBackup Backend konnte nicht hergestellt werden. (API-Fehler)
+                {!hasUrBackupData ? (
+                    <div className="p-8 text-center text-slate-400 text-sm flex flex-col items-center gap-2">
+                        <Server className="w-10 h-10 opacity-20" />
+                        <p>Noch keine Daten im Cache. Warte auf den ersten Sync-Durchlauf oder prüfe die URBackup-Verbindung.</p>
+                    </div>
+                ) : (
+                    <div>
+                        {/* Stat-Zeile */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-100">
+                            <div className="p-5 flex flex-col gap-1">
+                                <span className="text-xs text-slate-500 font-semibold uppercase tracking-wide">Clients gesamt</span>
+                                <span className="text-3xl font-black text-slate-800">{urbackup.clients_total}</span>
+                            </div>
+                            <div className="p-5 flex flex-col gap-1">
+                                <span className="text-xs text-slate-500 font-semibold uppercase tracking-wide">Online</span>
+                                <span className={`text-3xl font-black ${urbackup.clients_online > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>{urbackup.clients_online}</span>
+                            </div>
+                            <div className="p-5 flex flex-col gap-1">
+                                <span className="text-xs text-slate-500 font-semibold uppercase tracking-wide flex items-center gap-1"><HardDrive className="w-3 h-3" /> File OK</span>
+                                <span className={`text-3xl font-black ${urbackup.clients_file_ok === urbackup.clients_total ? 'text-emerald-600' : 'text-amber-500'}`}>{urbackup.clients_file_ok}/{urbackup.clients_total}</span>
+                            </div>
+                            <div className="p-5 flex flex-col gap-1">
+                                <span className="text-xs text-slate-500 font-semibold uppercase tracking-wide flex items-center gap-1"><Server className="w-3 h-3" /> Image OK</span>
+                                <span className={`text-3xl font-black ${urbackup.clients_image_ok === urbackup.clients_total ? 'text-emerald-600' : 'text-amber-500'}`}>{urbackup.clients_image_ok}/{urbackup.clients_total}</span>
+                            </div>
                         </div>
-                    ) : urbackupStatus?.clients?.length === 0 ? (
-                        <div className="p-8 text-center text-slate-500 text-sm">
-                            Keine Notebook-Clients gefunden oder UrBackup Server ist noch leer.
-                        </div>
-                    ) : (
-                        <table className="min-w-full divide-y divide-slate-100">
-                            <thead className="bg-white">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Client</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Status</th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Letztes Backup</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50 bg-white">
-                                {urbackupStatus?.clients?.map((client, idx) => (
-                                    <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                                        <td className="px-6 py-4 font-medium text-slate-900 text-sm">
-                                            {client.name}
-                                            <div className="text-xs text-slate-400 font-normal mt-0.5">v{client.client_version || 'Unknown'}</div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border ${client.online ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
-                                                <span className={`w-1.5 h-1.5 rounded-full ${client.online ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
-                                                {client.online ? 'Online' : 'Offline'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-slate-600">
-                                            <div className="flex flex-col">
-                                                <span>File: {formatTimestamp(client.lastbackup)}</span>
+
+                        {/* Backup starten – Client-Liste (nur Admins) */}
+                        {isAdmin && urbClients.length > 0 && (
+                            <div className="border-t border-slate-100">
+                                <div className="px-6 py-3 bg-slate-50/50 flex justify-between items-center">
+                                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Backup manuell starten</span>
+                                    {backupMsg && (
+                                        <span className={`text-xs px-3 py-1 rounded-lg font-medium ${backupMsg.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                                            {backupMsg.text}
+                                        </span>
+                                    )}
+                                </div>
+                                <ul className="divide-y divide-slate-50">
+                                    {urbClients.map(c => {
+                                        const isOnline = !!c.online;
+                                        return (
+                                            <li key={c.id} className="px-6 py-3 flex flex-wrap items-center gap-3">
+                                                <div className="flex items-center gap-2 min-w-[160px]">
+                                                    <span title={isOnline ? 'Online' : 'Offline'}>
+                                                        <Wifi className={`w-4 h-4 ${isOnline ? 'text-emerald-500' : 'text-slate-300'}`} />
+                                                    </span>
+                                                    <span className="font-medium text-slate-800 text-sm">{c.name}</span>
+                                                </div>
+                                                <div className="flex gap-2 flex-wrap">
+                                                    {(['full_file', 'incr_file', 'full_image', 'incr_image'] as const).map(bt => {
+                                                        const disabled = !isOnline || startingBackup === `${c.id}-${bt}`;
+                                                        const labels: Record<string, string> = {
+                                                            full_file: 'Full File',
+                                                            incr_file: 'Incr File',
+                                                            full_image: 'Full Image',
+                                                            incr_image: 'Incr Image'
+                                                        };
+                                                        const colors: Record<string, string> = {
+                                                            full_file: 'border-blue-200 text-blue-700 hover:bg-blue-50',
+                                                            incr_file: 'border-sky-200 text-sky-700 hover:bg-sky-50',
+                                                            full_image: 'border-purple-200 text-purple-700 hover:bg-purple-50',
+                                                            incr_image: 'border-violet-200 text-violet-700 hover:bg-violet-50'
+                                                        };
+                                                        return (
+                                                            <button
+                                                                key={bt}
+                                                                disabled={disabled}
+                                                                onClick={() => handleStartBackup(c.id, bt)}
+                                                                title={!isOnline ? 'Client ist offline' : `${labels[bt]} Backup starten`}
+                                                                className={`flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${colors[bt]}`}
+                                                            >
+                                                                {startingBackup === `${c.id}-${bt}`
+                                                                    ? <Loader2 className="w-3 h-3 animate-spin" />
+                                                                    : <Play className="w-3 h-3" />
+                                                                }
+                                                                {labels[bt]}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </div>
+                        )}
+
+                        {/* Letzte Backup-Ereignisse */}
+                        {urbackup.recent_backups.length > 0 && (
+                            <div className="border-t border-slate-100">
+                                <div className="px-6 py-3 bg-slate-50/50 text-xs font-semibold text-slate-500 uppercase tracking-wide">Letzte Backup-Ereignisse</div>
+                                <ul className="divide-y divide-slate-50">
+                                    {urbackup.recent_backups.map((b, idx) => (
+                                        <li key={idx} className="px-6 py-3 flex items-center justify-between text-sm">
+                                            <div className="flex items-center gap-3">
+                                                <span className={`w-2 h-2 rounded-full ${b.status === 'ok' ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                                                <span className="font-medium text-slate-800">{b.client_name}</span>
+                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                                    b.backup_type === 'file' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'
+                                                }`}>{b.backup_type}</span>
                                             </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-                </div>
+                                            <span className="text-slate-400 text-xs">{formatRelative(b.backup_time)}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Upcoming / Active Jobs Panel */}

@@ -1,0 +1,94 @@
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+Seeded initial users: admin & guest
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+[Cron] Initializing 0 active jobs...
+[URBackup Sync] Scheduler initialized (*/15 * * * *). Running initial sync...
+[URBackup Sync] Starting synchronization...
+Error: listen EADDRINUSE: address already in use :::3001
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at Function.listen (D:\vscode_projects\backup_planner\wamocon-backup-app\backend\node_modules\express\lib\application.js:635:24)
+    at Object.<anonymous> (D:\vscode_projects\backup_planner\wamocon-backup-app\backend\src\index.js:42:5)
+    at Module._compile (node:internal/modules/cjs/loader:1706:14)
+    at Object..js (node:internal/modules/cjs/loader:1839:10)
+    at Module.load (node:internal/modules/cjs/loader:1441:32)
+    at Function._load (node:internal/modules/cjs/loader:1263:12)
+    at Object.<anonymous> (C:\Users\Erwin Moretz\AppData\Local\npm-cache\_npx\5f7878ce38f1eb13\node_modules\pm2\lib\ProcessContainerFork.js:33:23) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 3001
+}
+[dotenv@17.3.1] injecting env (0) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[Cron] Initializing 0 active jobs...
+[URBackup Sync] Scheduler initialized (*/15 * * * *). Running initial sync...
+[URBackup Sync] Starting synchronization...
+Error: listen EADDRINUSE: address already in use :::3001
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at Function.listen (D:\vscode_projects\backup_planner\wamocon-backup-app\backend\node_modules\express\lib\application.js:635:24)
+    at Object.<anonymous> (D:\vscode_projects\backup_planner\wamocon-backup-app\backend\src\index.js:42:5)
+    at Module._compile (node:internal/modules/cjs/loader:1706:14)
+    at Object..js (node:internal/modules/cjs/loader:1839:10)
+    at Module.load (node:internal/modules/cjs/loader:1441:32)
+    at Function._load (node:internal/modules/cjs/loader:1263:12)
+    at Object.<anonymous> (C:\Users\Erwin Moretz\AppData\Local\npm-cache\_npx\5f7878ce38f1eb13\node_modules\pm2\lib\ProcessContainerFork.js:33:23) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 3001
+}
+[dotenv@17.3.1] injecting env (0) from .env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[dotenv@17.3.1] injecting env (0) from .env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[Cron] Initializing 0 active jobs...
+[URBackup Sync] Scheduler initialized (*/15 * * * *). Running initial sync...
+[URBackup Sync] Starting synchronization...
+Error: listen EADDRINUSE: address already in use :::3001
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at Function.listen (D:\vscode_projects\backup_planner\wamocon-backup-app\backend\node_modules\express\lib\application.js:635:24)
+    at Object.<anonymous> (D:\vscode_projects\backup_planner\wamocon-backup-app\backend\src\index.js:42:5)
+    at Module._compile (node:internal/modules/cjs/loader:1706:14)
+    at Object..js (node:internal/modules/cjs/loader:1839:10)
+    at Module.load (node:internal/modules/cjs/loader:1441:32)
+    at Function._load (node:internal/modules/cjs/loader:1263:12)
+    at Object.<anonymous> (C:\Users\Erwin Moretz\AppData\Local\npm-cache\_npx\5f7878ce38f1eb13\node_modules\pm2\lib\ProcessContainerFork.js:33:23) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 3001
+}
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  override existing env vars with { override: true }
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+[Cron] Initializing 0 active jobs...
+[URBackup Sync] Scheduler initialized (*/15 * * * *). Running initial sync...
+[URBackup Sync] Starting synchronization...
+Backend server running on port 3001
+Error fetching UrBackup status: fetch failed
+[URBackup Sync] Synchronization failed: fetch failed
+[dotenv@17.3.1] injecting env (0) from .env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[Cron] Initializing 0 active jobs...
+[URBackup Sync] Scheduler initialized (*/15 * * * *). Running initial sync...
+[URBackup Sync] Starting synchronization...
+Backend server running on port 3001
+Error fetching UrBackup status: fetch failed
+[URBackup Sync] Synchronization failed: fetch failed
+[dotenv@17.3.1] injecting env (15) from .env -- tip: ⚙️  override existing env vars with { override: true }
+[dotenv@17.3.1] injecting env (0) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[Cron] Initializing 2 active jobs...
+[Cron] Scheduled job: test (0 18 * * *)
+[Cron] Scheduled job: Test (0 18 * * *)
+[URBackup Sync] Scheduler initialized (*/15 * * * *). Running initial sync...
+[URBackup Sync] Starting synchronization...
+Backend server running on port 3001
+[URBackup Sync] Done. Synced 1 client(s).
+[URBackup Sync] Starting synchronization...
+[URBackup Sync] Done. Synced 1 client(s).

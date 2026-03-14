@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
-import { LogOut, LayoutDashboard, Database, FileText, LifeBuoy, Calendar, Loader2, Network } from 'lucide-react';
+import { LogOut, LayoutDashboard, Database, FileText, LifeBuoy, Calendar, Loader2, Network, Monitor } from 'lucide-react';
 import client from '../api/client';
 
 export default function Layout() {
@@ -44,6 +44,7 @@ export default function Layout() {
         { path: '/jobs', label: 'Backup Plans', icon: Database },
         { path: '/calendar', label: 'Kalender', icon: Calendar },
         { path: '/logs', label: 'Logs & Results', icon: FileText },
+        { path: '/devices', label: 'Geräte', icon: Monitor },
         { path: '/architecture', label: 'Architektur', icon: Network },
         {
             path: '/help',

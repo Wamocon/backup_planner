@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
-import { LogOut, LayoutDashboard, Database, FileText, LifeBuoy, Calendar, Loader2, Network, Monitor, Settings } from 'lucide-react';
+import { LogOut, LayoutDashboard, Database, FileText, LifeBuoy, Calendar, Loader2, Network, Monitor, Settings, BookOpen } from 'lucide-react';
 import client from '../api/client';
 import { useAuthStore } from '../store/auth.store';
 
@@ -51,17 +51,8 @@ export default function Layout() {
         { path: '/devices', label: 'Geräte', icon: Monitor },
         { path: '/architecture', label: 'Architektur', icon: Network },
         { path: '/settings', label: 'Einstellungen', icon: Settings, adminOnly: true },
-        {
-            path: '/help',
-            label: 'Hilfe & Erklärung',
-            icon: LifeBuoy,
-            subItems: [
-                { id: 'rule-321', label: 'Die 3-2-1 Regel' },
-                { id: 'backup-types', label: 'Backup-Arten' },
-                { id: 'faq', label: 'Häufige Fragen (FAQ)' },
-                { id: 'manual', label: 'Handbuch & Suche' }
-            ]
-        },
+        { path: '/help', label: 'Hilfe & Support', icon: LifeBuoy },
+        { path: '/manual', label: 'Handbuch', icon: BookOpen },
         { path: 'urbackup', label: 'Notebooks (UrBackup)', icon: Database, isExternal: true },
     ];
 
@@ -127,21 +118,7 @@ export default function Layout() {
                                         {item.label}
                                     </Link>
 
-                                    {/* Render Subitems if parent is active */}
-                                    {isActive && item.subItems && (
-                                        <div className="ml-6 mt-1 mb-2 space-y-1 relative pl-5 border-l border-slate-800/50">
-                                            {item.subItems.map(sub => (
-                                                <a
-                                                    key={sub.id}
-                                                    href={`#${sub.id}`}
-                                                    className="block py-1.5 text-sm text-slate-500 hover:text-blue-400 transition-colors relative"
-                                                >
-                                                    <span className="absolute -left-5 top-1/2 -mt-px w-3 h-px bg-slate-800/50"></span>
-                                                    {sub.label}
-                                                </a>
-                                            ))}
-                                        </div>
-                                    )}
+
                                 </div>
                             );
                         })}

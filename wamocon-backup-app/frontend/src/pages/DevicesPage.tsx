@@ -47,6 +47,7 @@ export default function DevicesPage() {
     const [editForm, setEditForm] = useState<EditState>({ display_name: '', owner_name: '', department: '', location: '', notes: '' });
     const [saving, setSaving] = useState(false);
     const [saveMsg, setSaveMsg] = useState<{ id: number; ok: boolean } | null>(null);
+    const [historyMap, setHistoryMap] = useState<Record<string, Record<string, 'ok' | 'failed' | 'partial'>>>({});
 
     const user = useAuthStore(state => state.user);
     const isAdmin = user?.role === 'admin';
@@ -62,7 +63,19 @@ export default function DevicesPage() {
         }
     };
 
-    useEffect(() => { fetchDevices(); }, []);
+    useEffect(() => {
+        fetchDevices();
+        client.get('/urbackup/history?days=7').then(r => {
+            const map: Record<string, Record<string, 'ok' | 'failed' | 'partial'>> = {};
+            for (const entry of r.data) {
+                const day = (entry.backup_time as string).slice(0, 10);
+                if (!map[entry.client_name]) map[entry.client_name] = {};
+                const prev = map[entry.client_name][day];
+                if (!prev || entry.status !== 'ok') map[entry.client_name][day] = entry.status;
+            }
+            setHistoryMap(map);
+        }).catch(() => {});
+    }, []);
 
     const startEdit = (d: Device) => {
         setEditingId(d.id);
@@ -99,6 +112,13 @@ export default function DevicesPage() {
             </div>
         );
     }
+
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (6 - i));
+        return d.toISOString().slice(0, 10);
+    });
+    const dotColor = { ok: 'bg-emerald-400', failed: 'bg-red-400', partial: 'bg-amber-400' };
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
@@ -166,6 +186,21 @@ export default function DevicesPage() {
                                     <div className="text-xs text-slate-400 space-y-0.5 min-w-[160px]">
                                         <p>Letztes File-Backup: <span className="font-medium text-slate-600">{formatRel(d.last_file_backup)}</span></p>
                                         <p>Letztes Image-Backup: <span className="font-medium text-slate-600">{formatRel(d.last_image_backup)}</span></p>
+                                    </div>
+
+                                    {/* 7-day mini history */}
+                                    <div className="flex items-center gap-1" title="Backup-Status der letzten 7 Tage">
+                                        {last7Days.map(day => {
+                                            const st = historyMap[d.name]?.[day];
+                                            return (
+                                                <div
+                                                    key={day}
+                                                    title={`${day}: ${st ?? 'kein Backup'}`}
+                                                    className={`w-3 h-3 rounded-sm ${ st ? dotColor[st] : 'bg-slate-200'}`}
+                                                />
+                                            );
+                                        })}
+                                        <span className="text-[10px] text-slate-400 ml-1">7T</span>
                                     </div>
 
                                     {isAdmin && !isEditing && (

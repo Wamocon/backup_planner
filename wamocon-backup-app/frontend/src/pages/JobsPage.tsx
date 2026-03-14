@@ -113,7 +113,7 @@ export default function JobsPage() {
         <div className="animate-in fade-in duration-500">
             <div className="sm:flex sm:items-center sm:justify-between mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Backup Plans (Jobs)</h1>
+                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Backup-Pläne</h1>
                     <p className="mt-2 text-slate-500 max-w-2xl">Verwalte hier alle Synchronisationen, rclone Quelle/Ziel Verbindungen und die zeitlichen Ausführungsintervalle der Backups.</p>
                 </div>
                 {isAdmin && (

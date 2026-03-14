@@ -8,6 +8,7 @@ import HelpPage from './pages/HelpPage';
 import CalendarPage from './pages/CalendarPage';
 import ArchitecturePage from './pages/ArchitecturePage';
 import DevicesPage from './pages/DevicesPage';
+import SettingsPage from './pages/SettingsPage';
 import ToastContainer from './components/Toast';
 
 function App() {
@@ -25,6 +26,7 @@ function App() {
           <Route path="/architecture" element={<ArchitecturePage />} />
           <Route path="/devices" element={<DevicesPage />} />
           <Route path="/help" element={<HelpPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

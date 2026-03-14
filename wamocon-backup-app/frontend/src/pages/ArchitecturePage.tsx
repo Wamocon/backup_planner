@@ -2,6 +2,8 @@ import {
     Network, Server, Cloud, HardDrive, Database, Monitor, Shield,
     ArrowRight, ArrowDown, Mail, FileText, CheckCircle2, Lock
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import client from '../api/client';
 
 const LAYERS = [
     {
@@ -100,6 +102,37 @@ const colorMap: Record<string, { bg: string; text: string; border: string; icon:
 };
 
 export default function ArchitecturePage() {
+    const [dashData, setDashData] = useState<any>(null);
+    const [macData, setMacData] = useState<any>(null);
+
+    useEffect(() => {
+        client.get('/dashboard').then(r => setDashData(r.data)).catch(() => {});
+        client.get('/macstudio/status').then(r => setMacData(r.data)).catch(() => {});
+    }, []);
+
+    const liveStatus: Record<string, 'ok' | 'warn' | 'error' | 'unknown'> = dashData ? {
+        'rclone': dashData.health?.status === 'ok' ? 'ok' : 'error',
+        'UrBackup Server': (dashData.urbackup?.clients_total ?? 0) > 0 ? 'ok' : 'warn',
+        'Node.js Backend': 'ok',
+        'SQLite Datenbank': 'ok',
+        'Synology NAS': macData?.latestBackup?.nas?.status?.startsWith('SUCCESS') ? 'ok' : macData ? 'warn' : 'unknown',
+        'Cloud-Speicher': macData?.latestBackup?.gdrive?.status?.startsWith('SUCCESS') ? 'ok' : macData ? 'warn' : 'unknown',
+        'Mac Studio (lokal)': macData ? 'ok' : 'unknown',
+    } : {};
+
+    const statusDotClass: Record<string, string> = {
+        ok: 'bg-emerald-400',
+        warn: 'bg-amber-400',
+        error: 'bg-red-400',
+        unknown: 'bg-slate-300',
+    };
+    const statusLabel: Record<string, string> = {
+        ok: 'Erreichbar / OK',
+        warn: 'Möglicherweise nicht verbunden',
+        error: 'Fehler / Nicht erreichbar',
+        unknown: 'Status unbekannt',
+    };
+
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
 
@@ -135,11 +168,18 @@ export default function ArchitecturePage() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                                     {layer.items.map(item => {
                                         const ic = colorMap[item.color];
+                                        const statusKey = liveStatus[item.label];
                                         return (
                                             <div key={item.label} className={`rounded-xl border p-4 ${ic.bg} ${ic.border} transition-shadow hover:shadow-md`}>
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <item.icon className={`w-5 h-5 ${ic.icon}`} />
                                                     <span className={`text-sm font-bold ${ic.text}`}>{item.label}</span>
+                                                    {statusKey && (
+                                                        <span
+                                                            className={`w-2 h-2 rounded-full ml-auto shrink-0 ${statusDotClass[statusKey]}`}
+                                                            title={statusLabel[statusKey]}
+                                                        />
+                                                    )}
                                                 </div>
                                                 <p className="text-xs text-slate-500 leading-relaxed">{item.desc}</p>
                                             </div>

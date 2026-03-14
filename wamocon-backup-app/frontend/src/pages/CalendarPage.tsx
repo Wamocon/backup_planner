@@ -337,14 +337,6 @@ export default function CalendarPage() {
                         <p className="text-slate-500 text-sm mt-1">Übersicht und dynamische Planung deiner Backup-Jobs.</p>
                     </div>
                 </div>
-                {isAdmin && (
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-lg shadow-blue-500/30 transition-all hover:-translate-y-0.5"
-                    >
-                        <Plus className="w-5 h-5" /> Neuen Plan erstellen
-                    </button>
-                )}
             </div>
 
             {/* V1: Nächstes-Backup-Banner mit echtem Datum */}

@@ -524,148 +524,57 @@ export default function DashboardPage() {
                 )}
             </div>
 
-            {/* UrBackup Widget */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                    <div>
-                        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                            <span className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
-                                <Server className="w-5 h-5" />
-                            </span>
-                            Endgerät-Backups (UrBackup)
-                        </h2>
-                        <p className="text-sm text-slate-500 mt-1">
-                            Gecachter Status · zuletzt synchronisiert {formatRelative(urbackup?.sync?.last_sync_at ?? null)}
-                        </p>
+            {/* UrBackup Widget – kompakt */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200">
+                <div className="px-6 py-4 flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-3 shrink-0">
+                        <span className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                            <Server className="w-5 h-5" />
+                        </span>
+                        <div>
+                            <p className="font-bold text-slate-800 text-sm leading-tight">Endgerät-Backups (UrBackup)</p>
+                            <p className="text-xs text-slate-400">Sync: {formatRelative(urbackup?.sync?.last_sync_at ?? null)}</p>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-3">
+
+                    {hasUrBackupData && (
+                        <div className="flex gap-2 flex-wrap">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border ${urbackup.clients_online > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
+                                <Wifi className="w-3 h-3" /> {urbackup.clients_online}/{urbackup.clients_total} online
+                            </span>
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border ${urbackup.clients_file_ok === urbackup.clients_total ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                                <HardDrive className="w-3 h-3" /> File {urbackup.clients_file_ok}/{urbackup.clients_total}
+                            </span>
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border ${urbackup.clients_image_ok === urbackup.clients_total ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                                <Server className="w-3 h-3" /> Image {urbackup.clients_image_ok}/{urbackup.clients_total}
+                            </span>
+                        </div>
+                    )}
+
+                    <div className="flex items-center gap-2 ml-auto flex-wrap">
                         {urbackup?.sync?.last_sync_error && (
-                            <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
-                                <WifiOff className="w-3.5 h-3.5" />
-                                URBackup nicht erreichbar
+                            <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg flex items-center gap-1">
+                                <WifiOff className="w-3 h-3" /> Nicht erreichbar
                             </span>
                         )}
                         {isAdmin && (
                             <button
                                 onClick={handleManualSync}
                                 disabled={syncing}
-                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 disabled:opacity-50 transition-colors"
+                                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 disabled:opacity-50 transition-colors"
                             >
-                                <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
-                                {syncing ? 'Sync läuft...' : 'Jetzt synchronisieren'}
+                                <RefreshCw className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`} />
+                                {syncing ? 'Sync...' : 'Sync'}
                             </button>
                         )}
+                        <Link to="/devices" className="text-xs text-slate-500 hover:text-indigo-600 font-medium flex items-center gap-1">
+                            Alle Geräte <ArrowRight className="w-3 h-3" />
+                        </Link>
                         <Link to="/logs?tab=urbackup" className="text-xs text-slate-500 hover:text-indigo-600 font-medium flex items-center gap-1">
-                            Alle Logs <ArrowRight className="w-3 h-3" />
+                            Logs <ArrowRight className="w-3 h-3" />
                         </Link>
                     </div>
                 </div>
-
-                {!hasUrBackupData ? (
-                    <div className="p-8 text-center text-slate-400 text-sm flex flex-col items-center gap-2">
-                        <Server className="w-10 h-10 opacity-20" />
-                        <p>Noch keine Daten im Cache. Warte auf den ersten Sync-Durchlauf oder prüfe die URBackup-Verbindung.</p>
-                    </div>
-                ) : (
-                    <div>
-                        {/* Stat-Zeile */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-100">
-                            <div className="p-5 flex flex-col gap-1">
-                                <span className="text-xs text-slate-500 font-semibold uppercase tracking-wide">Clients gesamt</span>
-                                <span className="text-3xl font-black text-slate-800">{urbackup.clients_total}</span>
-                            </div>
-                            <div className="p-5 flex flex-col gap-1">
-                                <span className="text-xs text-slate-500 font-semibold uppercase tracking-wide">Online</span>
-                                <span className={`text-3xl font-black ${urbackup.clients_online > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>{urbackup.clients_online}</span>
-                            </div>
-                            <div className="p-5 flex flex-col gap-1">
-                                <span className="text-xs text-slate-500 font-semibold uppercase tracking-wide flex items-center gap-1"><HardDrive className="w-3 h-3" /> File OK</span>
-                                <span className={`text-3xl font-black ${urbackup.clients_file_ok === urbackup.clients_total ? 'text-emerald-600' : 'text-amber-500'}`}>{urbackup.clients_file_ok}/{urbackup.clients_total}</span>
-                            </div>
-                            <div className="p-5 flex flex-col gap-1">
-                                <span className="text-xs text-slate-500 font-semibold uppercase tracking-wide flex items-center gap-1"><Server className="w-3 h-3" /> Image OK</span>
-                                <span className={`text-3xl font-black ${urbackup.clients_image_ok === urbackup.clients_total ? 'text-emerald-600' : 'text-amber-500'}`}>{urbackup.clients_image_ok}/{urbackup.clients_total}</span>
-                            </div>
-                        </div>
-
-                        {/* Backup starten – Client-Liste (nur Admins) */}
-                        {isAdmin && urbClients.length > 0 && (
-                            <div className="border-t border-slate-100">
-                                <div className="px-6 py-3 bg-slate-50/50 flex justify-between items-center">
-                                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Backup manuell starten</span>
-                                </div>
-                                <ul className="divide-y divide-slate-50">
-                                    {urbClients.map(c => {
-                                        const isOnline = !!c.online;
-                                        return (
-                                            <li key={c.id} className="px-6 py-3 flex flex-wrap items-center gap-3">
-                                                <div className="flex items-center gap-2 min-w-[160px]">
-                                                    <span title={isOnline ? 'Online' : 'Offline'}>
-                                                        <Wifi className={`w-4 h-4 ${isOnline ? 'text-emerald-500' : 'text-slate-300'}`} />
-                                                    </span>
-                                                    <span className="font-medium text-slate-800 text-sm">{c.name}</span>
-                                                </div>
-                                                <div className="flex gap-2 flex-wrap">
-                                                    {(['full_file', 'incr_file', 'full_image', 'incr_image'] as const).map(bt => {
-                                                        const disabled = !isOnline || startingBackup === `${c.id}-${bt}`;
-                                                        const labels: Record<string, string> = {
-                                                            full_file: 'Full File',
-                                                            incr_file: 'Incr File',
-                                                            full_image: 'Full Image',
-                                                            incr_image: 'Incr Image'
-                                                        };
-                                                        const colors: Record<string, string> = {
-                                                            full_file: 'border-blue-200 text-blue-700 hover:bg-blue-50',
-                                                            incr_file: 'border-sky-200 text-sky-700 hover:bg-sky-50',
-                                                            full_image: 'border-purple-200 text-purple-700 hover:bg-purple-50',
-                                                            incr_image: 'border-violet-200 text-violet-700 hover:bg-violet-50'
-                                                        };
-                                                        return (
-                                                            <button
-                                                                key={bt}
-                                                                disabled={disabled}
-                                                                onClick={() => handleStartBackup(c.id, bt)}
-                                                                title={!isOnline ? 'Client ist offline' : `${labels[bt]} Backup starten`}
-                                                                className={`flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${colors[bt]}`}
-                                                            >
-                                                                {startingBackup === `${c.id}-${bt}`
-                                                                    ? <Loader2 className="w-3 h-3 animate-spin" />
-                                                                    : <Play className="w-3 h-3" />
-                                                                }
-                                                                {labels[bt]}
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            </div>
-                        )}
-
-                        {/* Letzte Backup-Ereignisse */}
-                        {urbackup.recent_backups.length > 0 && (
-                            <div className="border-t border-slate-100">
-                                <div className="px-6 py-3 bg-slate-50/50 text-xs font-semibold text-slate-500 uppercase tracking-wide">Letzte Backup-Ereignisse</div>
-                                <ul className="divide-y divide-slate-50">
-                                    {urbackup.recent_backups.map((b, idx) => (
-                                        <li key={idx} className="px-6 py-3 flex items-center justify-between text-sm">
-                                            <div className="flex items-center gap-3">
-                                                <span className={`w-2 h-2 rounded-full ${b.status === 'ok' ? 'bg-emerald-400' : 'bg-red-400'}`} />
-                                                <span className="font-medium text-slate-800">{b.client_name}</span>
-                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                                                    b.backup_type === 'file' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'
-                                                }`}>{b.backup_type}</span>
-                                            </div>
-                                            <span className="text-slate-400 text-xs">{formatRelative(b.backup_time)}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
-                    </div>
-                )}
             </div>
 
             {/* Upcoming / Active Jobs Panel */}

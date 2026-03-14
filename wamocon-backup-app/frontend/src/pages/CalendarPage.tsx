@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
     format, addMonths, subMonths, startOfMonth, endOfMonth,
     startOfWeek, endOfWeek, isSameMonth, addDays, isToday,
@@ -6,10 +6,11 @@ import {
 } from 'date-fns';
 import { de } from 'date-fns/locale';
 import {
-    Calendar as CalendarIcon, ChevronLeft, ChevronRight, ShieldCheck,
+    Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronDown, ShieldCheck,
     Clock, HardDrive, Info, Plus, X, CheckCircle2, XCircle, AlertCircle,
-    Loader2
+    Loader2, TrendingUp
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth.store';
 import client from '../api/client';
 import JobModal from '../components/JobModal';
@@ -58,6 +59,10 @@ export default function CalendarPage() {
     const [loading, setLoading] = useState(true);
     const [selectedDay, setSelectedDay] = useState<Date | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [showYearPicker, setShowYearPicker] = useState(false);
+
+    const todayRef = useRef<HTMLDivElement>(null);
+    const navigate = useNavigate();
 
     const user = useAuthStore(state => state.user);
     const isAdmin = user?.role === 'admin';
@@ -121,6 +126,25 @@ export default function CalendarPage() {
         return withNextRun.sort((a, b) => a.next_run.getTime() - b.next_run.getTime())[0] ?? null;
     }, [jobs]);
 
+    // --- Monats-Statistiken (Option A) ---
+    const monthStats = useMemo(() => {
+        const monthRuns = runs.filter(r => {
+            try { return isSameMonth(parseISO(r.started_at), currentDate); }
+            catch { return false; }
+        });
+        const total = monthRuns.length;
+        const success = monthRuns.filter(r => r.status === 'success').length;
+        const failed = monthRuns.filter(r => r.status === 'failed').length;
+        const rate = total > 0 ? Math.round((success / total) * 100) : null;
+        return { total, success, failed, rate };
+    }, [runs, currentDate]);
+
+    // --- Heute-Navigation mit Scroll (Option C) ---
+    const handleNavigateToday = () => {
+        setCurrentDate(new Date());
+        setTimeout(() => todayRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80);
+    };
+
     // --- V1: Datum formatieren ---
     const formatNextRun = (date: Date): string => {
         if (isToday(date)) return `Heute · ${format(date, 'HH:mm')} Uhr`;
@@ -176,20 +200,30 @@ export default function CalendarPage() {
             const isCurrentMonth = isSameMonth(currentDay, monthStart);
             const isPast = currentDay < todayStart;
             const isSelected = selectedDay ? isSameDay(currentDay, selectedDay) : false;
+            const isWeekend = i === 5 || i === 6; // Option B: Sa/So
             const dayJobs = isCurrentMonth ? getPlannedJobsForDay(currentDay) : [];
             const dayRuns = isCurrentMonth ? getRunsForDay(currentDay) : [];
 
             days.push(
                 <div
                     key={currentDay.toString()}
+                    ref={isToday(currentDay) ? todayRef : undefined}
                     onClick={() => isCurrentMonth && setSelectedDay(isSelected ? null : currentDay)}
+                    onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && isCurrentMonth && setSelectedDay(isSelected ? null : currentDay)}
+                    tabIndex={isCurrentMonth ? 0 : -1}
+                    role="button"
+                    aria-label={format(currentDay, 'd. MMMM yyyy', { locale: de })}
                     className={[
-                        'min-h-[100px] sm:min-h-[120px] p-2 border border-slate-100 flex flex-col gap-1 transition-colors',
+                        'min-h-[100px] sm:min-h-[120px] p-2 border border-slate-100 flex flex-col gap-1 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-400',
                         !isCurrentMonth
                             ? 'bg-slate-50 text-slate-400 cursor-default'
-                            : isPast
-                                ? 'bg-slate-50/60 text-slate-600 hover:bg-slate-100/60 cursor-pointer'
-                                : 'bg-white text-slate-700 hover:bg-slate-50 cursor-pointer',
+                            : isWeekend && isPast
+                                ? 'bg-slate-100/70 text-slate-600 hover:bg-slate-100 cursor-pointer'
+                                : isWeekend
+                                    ? 'bg-slate-50/80 text-slate-700 hover:bg-slate-100/60 cursor-pointer'
+                                    : isPast
+                                        ? 'bg-slate-50/60 text-slate-600 hover:bg-slate-100/60 cursor-pointer'
+                                        : 'bg-white text-slate-700 hover:bg-slate-50 cursor-pointer',
                         isToday(currentDay) ? '!bg-blue-50/50 ring-1 ring-inset ring-blue-200' : '',
                         isSelected ? '!bg-indigo-50 ring-2 ring-inset ring-indigo-400' : '',
                     ].join(' ')}
@@ -225,8 +259,9 @@ export default function CalendarPage() {
                             return (
                                 <div
                                     key={idx}
-                                    className={`text-[10px] leading-tight px-1.5 py-1 rounded border shadow-sm truncate ${colors.badge}`}
-                                    title={`${dj.time} – ${dj.name} (${dj.type})`}
+                                    onClick={(e) => { e.stopPropagation(); navigate('/jobs'); }}
+                                    className={`text-[10px] leading-tight px-1.5 py-1 rounded border shadow-sm truncate cursor-pointer hover:opacity-75 transition-opacity ${colors.badge}`}
+                                    title={`${dj.time} – ${dj.name} (${dj.type}) · Klick: Jobs öffnen`}
                                 >
                                     <span className="font-semibold">{dj.time}</span>{' '}
                                     <span className="opacity-70">{dj.name}</span>
@@ -307,12 +342,39 @@ export default function CalendarPage() {
                 <div className="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
                     {/* Kalender-Header */}
                     <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                        <h2 className="text-lg font-bold text-slate-800 capitalize">
-                            {format(currentDate, 'MMMM yyyy', { locale: de })}
-                        </h2>
+                        {/* Option E: Jahr-Dropdown */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowYearPicker(p => !p)}
+                                className="flex items-center gap-1.5 text-lg font-bold text-slate-800 capitalize hover:text-blue-600 transition-colors"
+                            >
+                                {format(currentDate, 'MMMM', { locale: de })}
+                                <span className="text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg text-sm font-semibold">
+                                    {format(currentDate, 'yyyy')}
+                                </span>
+                                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${showYearPicker ? 'rotate-180' : ''}`} />
+                            </button>
+                            {showYearPicker && (
+                                <div className="absolute top-full left-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-20 p-2 grid grid-cols-3 gap-1 min-w-48">
+                                    {Array.from({ length: 11 }, (_, k) => currentDate.getFullYear() - 5 + k).map(year => (
+                                        <button
+                                            key={year}
+                                            onClick={() => { setCurrentDate(new Date(year, currentDate.getMonth(), 1)); setShowYearPicker(false); }}
+                                            className={`px-2 py-1.5 text-sm rounded-lg transition-colors ${
+                                                year === currentDate.getFullYear()
+                                                    ? 'bg-blue-600 text-white font-bold'
+                                                    : 'hover:bg-slate-100 text-slate-700'
+                                            }`}
+                                        >
+                                            {year}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={() => setCurrentDate(new Date())}
+                                onClick={handleNavigateToday}
                                 className="px-3 py-1.5 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-blue-600 transition-colors mr-2 shadow-sm"
                             >
                                 Heute
@@ -336,15 +398,22 @@ export default function CalendarPage() {
 
                     {/* Wochentage */}
                     <div className="grid grid-cols-7 bg-slate-50/80 border-b border-slate-200">
-                        {weekDays.map(d => (
-                            <div key={d} className="py-2 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        {weekDays.map((d, idx) => (
+                            <div key={d} className={`py-2 text-center text-xs font-semibold uppercase tracking-wider ${
+                                idx >= 5 ? 'text-slate-400 bg-slate-100/60' : 'text-slate-500'
+                            }`}>
                                 {d}
                             </div>
                         ))}
                     </div>
 
                     {/* Kalender-Grid */}
-                    <div className="flex-1 overflow-hidden">
+                    <div className="flex-1 overflow-hidden relative">
+                        {loading && (
+                            <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-10">
+                                <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                            </div>
+                        )}
                         {rows}
                     </div>
 
@@ -460,6 +529,52 @@ export default function CalendarPage() {
                     ) : (
                         // === Strategie-Sidebar (Standard) ===
                         <>
+                            {/* Option A: Monats-Statistiken */}
+                            {monthStats.total > 0 && (
+                                <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                                        <TrendingUp className="w-3.5 h-3.5" />
+                                        {format(currentDate, 'MMMM', { locale: de })} – Übersicht
+                                    </h4>
+                                    <div className="grid grid-cols-3 gap-3 mb-3">
+                                        <div className="text-center">
+                                            <div className="text-2xl font-bold text-slate-800">{monthStats.total}</div>
+                                            <div className="text-xs text-slate-400 mt-0.5">Runs</div>
+                                        </div>
+                                        <div className="text-center">
+                                            <div className="text-2xl font-bold text-emerald-600">{monthStats.success}</div>
+                                            <div className="text-xs text-slate-400 mt-0.5">Erfolgreich</div>
+                                        </div>
+                                        <div className="text-center">
+                                            <div className="text-2xl font-bold text-red-500">{monthStats.failed}</div>
+                                            <div className="text-xs text-slate-400 mt-0.5">Fehler</div>
+                                        </div>
+                                    </div>
+                                    {monthStats.rate !== null && (
+                                        <div className="mt-1">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="text-xs text-slate-500">Erfolgsquote</span>
+                                                <span className={`text-xs font-bold ${
+                                                    monthStats.rate >= 90 ? 'text-emerald-600'
+                                                    : monthStats.rate >= 70 ? 'text-amber-600'
+                                                    : 'text-red-500'
+                                                }`}>{monthStats.rate}%</span>
+                                            </div>
+                                            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                                <div
+                                                    className={`h-full rounded-full transition-all ${
+                                                        monthStats.rate >= 90 ? 'bg-emerald-500'
+                                                        : monthStats.rate >= 70 ? 'bg-amber-400'
+                                                        : 'bg-red-500'
+                                                    }`}
+                                                    style={{ width: `${monthStats.rate}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-4 opacity-10">
                                     <ShieldCheck className="w-24 h-24" />

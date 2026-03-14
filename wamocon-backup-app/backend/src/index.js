@@ -10,6 +10,7 @@ const runsRouter = require('./modules/backup/runs.router');
 const urbackupRouter = require('./modules/urbackup/urbackup.router');
 const devicesRouter = require('./modules/devices/devices.router');
 const macstudioRouter = require('./modules/macstudio/macstudio.router');
+const settingsRouter = require('./modules/settings/settings.router');
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use('/api/dashboard', dashboardRouter);
 app.use('/api/urbackup', urbackupRouter);
 app.use('/api/devices', devicesRouter);
 app.use('/api/macstudio', macstudioRouter);
+app.use('/api/settings', settingsRouter);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

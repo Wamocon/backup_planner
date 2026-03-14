@@ -3,6 +3,11 @@ import client from '../api/client';
 import { useAuthStore } from '../store/auth.store';
 import { Plus, Edit, Trash2, Play, Loader2, Database } from 'lucide-react';
 import JobModal from '../components/JobModal';
+import { CronExpressionParser } from 'cron-parser';
+import { format } from 'date-fns';
+import { de } from 'date-fns/locale';
+import { useToastStore } from '../store/toast.store';
+import ConfirmModal from '../components/ConfirmModal';
 
 interface Job {
     id: number;
@@ -15,6 +20,16 @@ interface Job {
     is_active: number;
 }
 
+const getNextRun = (cronStr: string): string => {
+    try {
+        const interval = CronExpressionParser.parse(cronStr);
+        const next = interval.next().toDate();
+        return format(next, 'EEE, dd.MM. HH:mm', { locale: de });
+    } catch {
+        return '–';
+    }
+};
+
 export default function JobsPage() {
     const [jobs, setJobs] = useState<Job[]>([]);
     const [loading, setLoading] = useState(true);
@@ -24,6 +39,11 @@ export default function JobsPage() {
 
     const user = useAuthStore(state => state.user);
     const isAdmin = user?.role === 'admin';
+    const addToast = useToastStore(s => s.addToast);
+    const [dialog, setDialog] = useState<{
+        open: boolean; title: string; message: string; variant: 'danger' | 'primary'; onConfirm: () => void;
+    }>({ open: false, title: '', message: '', variant: 'primary', onConfirm: () => {} });
+    const closeDialog = () => setDialog(d => ({ ...d, open: false }));
 
     const fetchJobs = async () => {
         setLoading(true);
@@ -49,35 +69,51 @@ export default function JobsPage() {
         setIsModalOpen(true);
     };
 
-    const handleDelete = async (job: Job) => {
+    const handleDelete = (job: Job) => {
         if (job.backup_type === 'gobd') {
-            alert('GoBD-konforme Backup-Pläne können aus Compliance-Gründen nicht gelöscht werden. Der Plan kann nur deaktiviert werden.');
+            addToast('GoBD-konforme Backup-Pläne können nicht gelöscht werden. Der Plan kann nur deaktiviert werden.', 'error');
             return;
         }
-        if (!confirm('Diesen Backup-Plan wirklich löschen? Historische Läufe bleiben in der DB erhalten.')) return;
-        try {
-            await client.delete(`/jobs/${job.id}`);
-            fetchJobs();
-        } catch (e: any) {
-            alert(e?.response?.data?.error || 'Löschen fehlgeschlagen.');
-        }
+        setDialog({
+            open: true,
+            title: 'Backup-Plan löschen',
+            message: `"${job.name}" wirklich löschen? Historische Läufe bleiben in der Datenbank erhalten.`,
+            variant: 'danger',
+            onConfirm: async () => {
+                try {
+                    await client.delete(`/jobs/${job.id}`);
+                    addToast(`"${job.name}" wurde erfolgreich gelöscht.`, 'success');
+                    fetchJobs();
+                } catch (e: any) {
+                    addToast(e?.response?.data?.error || 'Löschen fehlgeschlagen.', 'error');
+                }
+            }
+        });
     };
 
-    const handleRun = async (id: number) => {
-        if (!confirm('Diesen Backup-Job jetzt manuell außerhalb des Zeitplans starten?')) return;
-        try {
-            await client.post(`/jobs/${id}/run`);
-            alert('Job erfolgreich gestartet. Du kannst den Lauf im Dashboard oder den Logs verfolgen.');
-        } catch (e) {
-            alert('Start fehlgeschlagen.');
-        }
+    const handleRun = (id: number) => {
+        const job = jobs.find(j => j.id === id);
+        setDialog({
+            open: true,
+            title: 'Backup jetzt starten',
+            message: `"${job?.name || 'Job'}" jetzt manuell außerhalb des Zeitplans starten?`,
+            variant: 'primary',
+            onConfirm: async () => {
+                try {
+                    await client.post(`/jobs/${id}/run`);
+                    addToast('Job erfolgreich gestartet. Fortschritt in Dashboard oder Logs verfolgbar.', 'success');
+                } catch {
+                    addToast('Start fehlgeschlagen.', 'error');
+                }
+            }
+        });
     };
 
     return (
         <div className="animate-in fade-in duration-500">
             <div className="sm:flex sm:items-center sm:justify-between mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Backup Plans (Jobs)</h1>
+                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Backup-Pläne</h1>
                     <p className="mt-2 text-slate-500 max-w-2xl">Verwalte hier alle Synchronisationen, rclone Quelle/Ziel Verbindungen und die zeitlichen Ausführungsintervalle der Backups.</p>
                 </div>
                 {isAdmin && (
@@ -102,7 +138,7 @@ export default function JobsPage() {
                             <tr>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Plan & Typ</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Verbindung (Quelle → Ziel)</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Erweiterte Settings</th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Zeitplan & Einstellungen</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
                                 {isAdmin && <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Aktionen</th>}
                             </tr>
@@ -131,6 +167,11 @@ export default function JobsPage() {
                                     </td>
                                     <td className="px-6 py-5 whitespace-nowrap">
                                         <div className="text-sm text-slate-700">Cron: <code className="font-semibold text-indigo-600">{job.schedule}</code></div>
+                                        {job.is_active ? (
+                                            <div className="text-xs text-emerald-600 mt-0.5 font-medium">Nächster Lauf: {getNextRun(job.schedule)}</div>
+                                        ) : (
+                                            <div className="text-xs text-slate-400 mt-0.5">Pausiert – kein nächster Lauf</div>
+                                        )}
                                         <div className="text-xs text-slate-500 mt-1">Retention: {job.retention_days} Tage</div>
                                     </td>
                                     <td className="px-6 py-5 whitespace-nowrap">
@@ -140,7 +181,7 @@ export default function JobsPage() {
                                     </td>
                                     {isAdmin && (
                                         <td className="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
-                                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="flex justify-end gap-2">
                                                 <button onClick={() => handleRun(job.id)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200" title="Jetzt ausführen">
                                                     <Play className="w-4 h-4" /> Start
                                                 </button>
@@ -176,6 +217,14 @@ export default function JobsPage() {
                 onClose={() => setIsModalOpen(false)}
                 jobToEdit={editingJob}
                 onSaveSuccess={fetchJobs}
+            />
+            <ConfirmModal
+                isOpen={dialog.open}
+                title={dialog.title}
+                message={dialog.message}
+                variant={dialog.variant}
+                onConfirm={dialog.onConfirm}
+                onCancel={closeDialog}
             />
         </div>
     );

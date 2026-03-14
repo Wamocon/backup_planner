@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
-import { LogOut, LayoutDashboard, Database, FileText, LifeBuoy, Calendar, Loader2, Network, Monitor } from 'lucide-react';
+import { LogOut, LayoutDashboard, Database, FileText, LifeBuoy, Calendar, Loader2, Network, Monitor, Settings } from 'lucide-react';
 import client from '../api/client';
+import { useAuthStore } from '../store/auth.store';
 
 export default function Layout() {
     const token = localStorage.getItem('token');
@@ -34,6 +35,9 @@ export default function Layout() {
         return <Navigate to="/login" replace />;
     }
 
+    const user = useAuthStore.getState().user;
+    const isAdmin = user?.role === 'admin';
+
     const handleLogout = () => {
         localStorage.removeItem('token');
         window.location.href = '/login';
@@ -41,11 +45,12 @@ export default function Layout() {
 
     const navItems = [
         { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { path: '/jobs', label: 'Backup Plans', icon: Database },
+        { path: '/jobs', label: 'Backup-Pläne', icon: Database },
         { path: '/calendar', label: 'Kalender', icon: Calendar },
-        { path: '/logs', label: 'Logs & Results', icon: FileText },
+        { path: '/logs', label: 'Protokolle', icon: FileText },
         { path: '/devices', label: 'Geräte', icon: Monitor },
         { path: '/architecture', label: 'Architektur', icon: Network },
+        { path: '/settings', label: 'Einstellungen', icon: Settings, adminOnly: true },
         {
             path: '/help',
             label: 'Hilfe & Erklärung',
@@ -54,7 +59,6 @@ export default function Layout() {
                 { id: 'rule-321', label: 'Die 3-2-1 Regel' },
                 { id: 'backup-types', label: 'Backup-Arten' },
                 { id: 'faq', label: 'Häufige Fragen (FAQ)' },
-                { id: 'urbackup', label: 'Notebooks (UrBackup)' },
                 { id: 'manual', label: 'Handbuch & Suche' }
             ]
         },
@@ -82,6 +86,7 @@ export default function Layout() {
                     {/* Navigation Links */}
                     <nav className="p-4 space-y-1 mt-4">
                         {navItems.map((item) => {
+                            if ((item as any).adminOnly && !isAdmin) return null;
                             const isActive = !item.isExternal && location.pathname.startsWith(item.path);
 
                             if (item.isExternal) {
@@ -162,7 +167,7 @@ export default function Layout() {
                             className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-colors"
                         >
                             <LogOut className="h-5 w-5" />
-                            Sign out
+                            Abmelden
                         </button>
                     </div>
                 </div>

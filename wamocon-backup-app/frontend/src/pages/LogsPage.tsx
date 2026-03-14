@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import client from '../api/client';
-import { FileText, Loader2, AlertCircle, CalendarClock, Database, Server, HardDrive, CheckCircle2, XCircle } from 'lucide-react';
+import { FileText, Loader2, AlertCircle, CalendarClock, Database, Server, HardDrive, CheckCircle2, XCircle, Copy, Search } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -43,15 +43,22 @@ export default function LogsPage() {
     const [selectedRun, setSelectedRun] = useState<Run | null>(null);
     const [logContent, setLogContent] = useState<string>('');
     const [loadingLog, setLoadingLog] = useState(false);
+    const [statusFilter, setStatusFilter] = useState<'all' | 'success' | 'failed' | 'running'>('all');
+    const [nameFilter, setNameFilter] = useState('');
+    const [daysFilter, setDaysFilter] = useState<30 | 90>(30);
+    const [copied, setCopied] = useState(false);
 
     const [urbHistory, setUrbHistory] = useState<UrbEntry[]>([]);
     const [urbLoading, setUrbLoading] = useState(false);
     const [urbFilter, setUrbFilter] = useState<'all' | 'file' | 'image'>('all');
 
     useEffect(() => {
+        setLoading(true);
+        setSelectedRun(null);
+        setLogContent('');
         const fetchRuns = async () => {
             try {
-                const { data } = await client.get('/runs/recent?days=30');
+                const { data } = await client.get(`/runs/recent?days=${daysFilter}`);
                 setRuns(data);
             } catch (err) {
                 console.error(err);
@@ -60,7 +67,7 @@ export default function LogsPage() {
             }
         };
         fetchRuns();
-    }, []);
+    }, [daysFilter]);
 
     useEffect(() => {
         if (activeTab !== 'urbackup') return;
@@ -78,6 +85,18 @@ export default function LogsPage() {
         };
         fetchUrb();
     }, [activeTab, urbFilter]);
+
+    const filteredRuns = runs.filter(r =>
+        (statusFilter === 'all' || r.status === statusFilter) &&
+        (nameFilter === '' || (r.job_name || `Job #${r.job_id}`).toLowerCase().includes(nameFilter.toLowerCase()))
+    );
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(logContent).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        });
+    };
 
     const handleSelectRun = async (run: Run) => {
         setSelectedRun(run);
@@ -123,18 +142,57 @@ export default function LogsPage() {
 
                     {/* Sidebar history */}
                     <div className="w-1/3 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col overflow-hidden">
-                        <div className="p-5 border-b border-slate-100 bg-white shadow-sm z-10">
+                        <div className="p-4 border-b border-slate-100 bg-white shadow-sm z-10 space-y-3">
                             <h2 className="font-bold text-slate-800 flex items-center gap-2">
                                 <CalendarClock className="w-5 h-5 text-indigo-500" />
                                 Letzte Ausführungen
                             </h2>
+                            <div className="relative">
+                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Job-Name filtern..."
+                                    value={nameFilter}
+                                    onChange={e => setNameFilter(e.target.value)}
+                                    className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                />
+                            </div>
+                            <div className="flex gap-1 flex-wrap items-center">
+                                {(['all', 'success', 'failed', 'running'] as const).map(s => (
+                                    <button
+                                        key={s}
+                                        onClick={() => setStatusFilter(s)}
+                                        className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-all ${
+                                            statusFilter === s
+                                                ? s === 'success' ? 'bg-emerald-100 text-emerald-700'
+                                                : s === 'failed' ? 'bg-rose-100 text-rose-700'
+                                                : s === 'running' ? 'bg-blue-100 text-blue-700'
+                                                : 'bg-indigo-600 text-white'
+                                                : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                                        }`}
+                                    >
+                                        {s === 'all' ? 'Alle' : s}
+                                    </button>
+                                ))}
+                                <div className="flex gap-1 ml-auto">
+                                    {([30, 90] as const).map(d => (
+                                        <button
+                                            key={d}
+                                            onClick={() => setDaysFilter(d)}
+                                            className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all ${daysFilter === d ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                                        >
+                                            {d}d
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                         <div className="flex-1 overflow-y-auto p-3">
                             {loading ? (
                                 <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-indigo-500" /></div>
                             ) : (
                                 <ul className="space-y-2">
-                                    {runs.map(run => (
+                                    {filteredRuns.map(run => (
                                         <li key={run.id}>
                                             <button
                                                 onClick={() => handleSelectRun(run)}
@@ -163,7 +221,7 @@ export default function LogsPage() {
                                             </button>
                                         </li>
                                     ))}
-                                    {runs.length === 0 && <li className="p-8 text-center text-sm text-slate-500 bg-white rounded-xl border border-dashed border-slate-200">Keine Historie gefunden.</li>}
+                                    {filteredRuns.length === 0 && <li className="p-8 text-center text-sm text-slate-500 bg-white rounded-xl border border-dashed border-slate-200">{runs.length === 0 ? 'Keine Historie gefunden.' : 'Kein Eintrag entspricht dem Filter.'}</li>}
                                 </ul>
                             )}
                         </div>
@@ -184,23 +242,45 @@ export default function LogsPage() {
                                         <FileText className="w-4 h-4 ml-2 text-slate-500" />
                                         <span className="font-mono text-sm tracking-wide">run_{selectedRun.id}.log</span>
                                     </div>
-                                    {selectedRun.status === 'failed' && selectedRun.error_message && (
-                                        <div className="flex items-center gap-2 text-rose-400 bg-rose-950/50 px-3 py-1.5 rounded-lg border border-rose-900/50">
-                                            <AlertCircle className="w-4 h-4" />
-                                            <span className="text-xs font-medium truncate max-w-[200px] sm:max-w-[400px]">{selectedRun.error_message}</span>
-                                        </div>
-                                    )}
+                                    <div className="flex items-center gap-2">
+                                        {selectedRun.status === 'failed' && selectedRun.error_message && (
+                                            <div className="flex items-center gap-2 text-rose-400 bg-rose-950/50 px-3 py-1.5 rounded-lg border border-rose-900/50">
+                                                <AlertCircle className="w-4 h-4" />
+                                                <span className="text-xs font-medium truncate max-w-[200px] sm:max-w-[400px]">{selectedRun.error_message}</span>
+                                            </div>
+                                        )}
+                                        {logContent && (
+                                            <button
+                                                onClick={handleCopy}
+                                                className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 bg-slate-800 hover:bg-slate-700 px-2.5 py-1.5 rounded-lg transition-colors"
+                                                title="Log in Zwischenablage kopieren"
+                                            >
+                                                <Copy className="w-3.5 h-3.5" />
+                                                {copied ? 'Kopiert!' : 'Kopieren'}
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Terminal Output */}
-                                <div className="flex-1 p-6 overflow-y-auto font-mono text-[13px] text-emerald-400 leading-relaxed whitespace-pre-wrap selection:bg-emerald-900 selection:text-emerald-100 relative">
+                                <div className="flex-1 p-6 overflow-y-auto font-mono text-[13px] leading-relaxed whitespace-pre-wrap selection:bg-emerald-900 selection:text-emerald-100 relative">
                                     {loadingLog ? (
                                         <div className="absolute inset-0 flex flex-col items-center justify-center text-emerald-600/50 gap-4">
                                             <Loader2 className="w-8 h-8 animate-spin" />
                                             <p className="animate-pulse">Fetching stdout chunk...</p>
                                         </div>
+                                    ) : logContent ? (
+                                        logContent.split('\n').map((line, i) => {
+                                            const isError = /\b(error|failed|fatal|critical)\b/i.test(line);
+                                            const isWarn = /\b(warn|warning|skipping)\b/i.test(line);
+                                            return (
+                                                <span key={i} className={isError ? 'text-red-400 font-semibold' : isWarn ? 'text-amber-400' : 'text-emerald-400'}>
+                                                    {line}{'\n'}
+                                                </span>
+                                            );
+                                        })
                                     ) : (
-                                        logContent ? logContent : <span className="text-slate-600 italic">Keine Konsolenausgabe vorhanden. (Rclone loggt möglicherweise nur Fehler)</span>
+                                        <span className="text-slate-600 italic">Keine Konsolenausgabe vorhanden. (Rclone loggt möglicherweise nur Fehler)</span>
                                     )}
                                 </div>
                             </>

@@ -1,14 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
 import client from '../api/client';
-import Timeline from '../components/Timeline';
-import JobCard from '../components/JobCard';
 import JobModal from '../components/JobModal';
 import { useAuthStore } from '../store/auth.store';
 import { useToastStore } from '../store/toast.store';
 import ConfirmModal from '../components/ConfirmModal';
-import { CheckCircle, XCircle, Loader2, Plus, ArrowRight, ShieldAlert, Server, HardDrive, RefreshCw, WifiOff, Play, Wifi, Cloud, Database } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Plus, ArrowRight, Server, HardDrive, RefreshCw, WifiOff, Play, Wifi, Cloud, Database, Clock, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { formatDistanceToNow, parseISO } from 'date-fns';
+import { formatDistanceToNow, parseISO, subDays, isSameDay, format } from 'date-fns';
 import { de } from 'date-fns/locale';
 
 interface MacStudioJobStatus {
@@ -102,6 +100,7 @@ export default function DashboardPage() {
     const [macStudioError, setMacStudioError] = useState(false);
     const [triggeringBackup, setTriggeringBackup] = useState<string | null>(null);
     const macStudioIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const [urbHistory7, setUrbHistory7] = useState<{ backup_time: string; status: string; client_name: string }[]>([]);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -201,11 +200,21 @@ export default function DashboardPage() {
         }
     };
 
+    const fetchUrbHistory7 = async () => {
+        try {
+            const resp = await client.get('/urbackup/history?days=7');
+            setUrbHistory7(resp.data);
+        } catch {
+            // silently ignore
+        }
+    };
+
     useEffect(() => {
         fetchDashboard();
         fetchUrbClients();
         fetchLiveData();
         fetchMacStudio();
+        fetchUrbHistory7();
         liveIntervalRef.current = setInterval(fetchLiveData, 10000);
         macStudioIntervalRef.current = setInterval(fetchMacStudio, 30000);
         return () => {
@@ -246,12 +255,6 @@ export default function DashboardPage() {
     }
 
     const isRunning = data?.last_runs?.some(r => r.status === 'running');
-
-    // Simple hardcoded 3-2-1 check recommendation 
-    const destinations = data?.upcoming?.map(j => j?.destination) || [];
-    const hasCloud = destinations.some(d => d?.includes('drive'));
-    const hasLocal = destinations.some(d => d?.includes('nas'));
-    const meets321 = hasCloud && hasLocal;
 
     const urbackup = data?.urbackup;
     const hasUrBackupData = urbackup && urbackup.clients_total > 0;
@@ -301,22 +304,9 @@ export default function DashboardPage() {
                 </div>
             )}
 
-            {/* Recommended Actions Alert (3-2-1 Rule logic MVP) */}
-            {!meets321 && data && data.upcoming.length > 0 && (
-                <div className="bg-orange-50 border border-orange-200 p-5 rounded-2xl flex items-start">
-                    <ShieldAlert className="w-6 h-6 text-orange-500 mr-4 shrink-0 mt-0.5" />
-                    <div>
-                        <h3 className="text-orange-900 font-bold">Empfehlung: 3-2-1 Backup Regel</h3>
-                        <p className="text-orange-800 mt-1">Deine Backup-Ziele erfüllen noch nicht die 3-2-1-Regel. Richte sowohl ein lokales (NAS) als auch ein Cloud-Ziel ein.</p>
-                        <Link to="/help#rule-321" className="inline-flex items-center gap-1 mt-2 text-sm font-semibold text-orange-700 hover:text-orange-900 underline underline-offset-2">
-                            Mehr erfahren <ArrowRight className="w-3.5 h-3.5" />
-                        </Link>
-                    </div>
-                </div>
-            )}
-
             {/* Metrics Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Konfigurierte Pläne */}
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-center relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                         <CheckCircle className="w-24 h-24 text-slate-900" />
@@ -335,93 +325,58 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
-                    <div>
-                        <h3 className="text-slate-500 text-sm font-semibold uppercase tracking-wider mb-2">Service Status (rclone)</h3>
-                        <div className="flex items-center gap-2">
-                            <span className="relative flex h-3 w-3">
-                                {data?.health?.status === 'ok' && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>}
-                                <span className={`relative inline-flex rounded-full h-3 w-3 ${data?.health?.status === 'ok' ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                            </span>
-                            <p className="text-2xl font-bold text-slate-800 capitalize">{data?.health?.status}</p>
-                        </div>
-                        {data?.health?.version && <p className="text-xs text-slate-400 mt-1">v{data.health.version}</p>}
+                {/* 7-Tage Backup-Übersicht – alle Systeme */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 className="text-slate-500 text-sm font-semibold uppercase tracking-wider mb-5 flex items-center justify-between">
+                        7-Tage Backup-Übersicht
+                        <span className="text-xs font-medium normal-case bg-slate-100 text-slate-600 px-2 py-1 rounded-md">Alle Systeme</span>
+                    </h3>
+                    <div className="flex justify-between items-end gap-2 w-full">
+                        {Array.from({ length: 7 }, (_, i) => subDays(new Date(), 6 - i)).map((day, idx) => {
+                            const dayStr = format(day, 'yyyy-MM-dd');
+                            const rcloneRuns = data?.last_runs?.filter(r => isSameDay(parseISO(r.started_at), day)) || [];
+                            const urbRuns = urbHistory7.filter(r => r.backup_time?.slice(0, 10) === dayStr);
+                            const hasData = rcloneRuns.length > 0 || urbRuns.length > 0;
+                            const anyFailed = rcloneRuns.some(r => r.status === 'failed') || urbRuns.some(r => r.status !== 'ok');
+                            const anyRunning = rcloneRuns.some(r => r.status === 'running');
+                            const status = !hasData ? 'unknown' : anyRunning ? 'running' : anyFailed ? 'failed' : 'success';
+                            const cfg: Record<string, { color: string; glow: string }> = {
+                                running: { color: 'bg-blue-500',   glow: 'ring-2 ring-blue-500/50' },
+                                success: { color: 'bg-emerald-500', glow: '' },
+                                failed:  { color: 'bg-rose-500',   glow: '' },
+                                unknown: { color: 'bg-slate-200',  glow: '' },
+                            };
+                            const { color, glow } = cfg[status];
+                            const statusLabel = status === 'unknown' ? 'Keine Backups' : status === 'success' ? 'Alles OK' : status === 'failed' ? 'Fehler' : 'Läuft';
+                            const tooltip = `${format(day, 'dd. MMM')} · ${statusLabel}${rcloneRuns.length > 0 ? ` · ${rcloneRuns.length} rclone` : ''}${urbRuns.length > 0 ? ` · ${urbRuns.length} URBackup` : ''}`;
+                            return (
+                                <div key={idx} className="flex flex-col items-center gap-3 flex-1 group/day relative">
+                                    <div className="absolute bottom-full mb-3 opacity-0 group-hover/day:opacity-100 transition-opacity bg-slate-800 text-white text-xs px-3 py-1.5 rounded-lg whitespace-nowrap pointer-events-none z-10 shadow-xl">
+                                        {tooltip}
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800" />
+                                    </div>
+                                    <div className={`w-full max-w-[2.5rem] aspect-square rounded-xl transition-all duration-300 shadow-md ${color} ${glow} hover:-translate-y-1 hover:scale-110 cursor-help relative overflow-hidden`}>
+                                        <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover/day:opacity-100 transition-opacity" />
+                                    </div>
+                                    <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">{format(day, 'EEE', { locale: de })}</span>
+                                </div>
+                            );
+                        })}
                     </div>
-                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${data?.health?.status === 'ok' ? 'bg-green-50 text-green-500' : 'bg-red-50 text-red-500'}`}>
-                        <CheckCircle className="w-8 h-8" />
+                    <div className="flex gap-4 mt-5 pt-4 border-t border-slate-100">
+                        {[
+                            { color: 'bg-emerald-500', label: 'Erfolgreich' },
+                            { color: 'bg-rose-500',    label: 'Fehler' },
+                            { color: 'bg-slate-200',   label: 'Keine Daten' },
+                        ].map(({ color, label }) => (
+                            <div key={label} className="flex items-center gap-1.5">
+                                <div className={`w-2.5 h-2.5 rounded-sm ${color}`} />
+                                <span className="text-xs text-slate-400">{label}</span>
+                            </div>
+                        ))}
                     </div>
-                </div>
-
-                <div className="col-span-1 md:col-span-1 border rounded-2xl overflow-hidden bg-white shadow-sm border-slate-200">
-                    <Timeline recentRuns={data?.last_runs || []} />
                 </div>
             </div>
-
-            {/* Live URBackup Status + aktive Backups */}
-            {liveData && (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                        <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                            <span className="relative flex h-2.5 w-2.5">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                            </span>
-                            Live – URBackup Status
-                        </h2>
-                        <span className="text-xs text-slate-400">Aktualisiert alle 10 Sek.</span>
-                    </div>
-
-                    {/* Aktive Backups mit Fortschritt */}
-                    {liveData.activities.current.length > 0 ? (
-                        <div className="divide-y divide-slate-50">
-                            {liveData.activities.current.map((act, i) => {
-                                const pct = Math.round(act.percent_done ?? 0);
-                                const etaSec = act.eta_ms > 0 ? Math.round(act.eta_ms / 1000) : null;
-                                const etaLabel = etaSec != null
-                                    ? etaSec < 60 ? `${etaSec}s` : etaSec < 3600 ? `${Math.round(etaSec/60)}min` : `${(etaSec/3600).toFixed(1)}h`
-                                    : '–';
-                                return (
-                                    <div key={i} className="px-6 py-4">
-                                        <div className="flex justify-between items-center mb-1.5">
-                                            <div className="flex items-center gap-2">
-                                                <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" />
-                                                <span className="font-semibold text-slate-800 text-sm">{act.name}</span>
-                                                <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{act.action}</span>
-                                                {act.paused && <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Pausiert</span>}
-                                            </div>
-                                            <div className="flex items-center gap-3 text-sm">
-                                                <span className="font-bold text-slate-800">{pct}%</span>
-                                                <span className="text-slate-400 text-xs">ETA: {etaLabel}</span>
-                                            </div>
-                                        </div>
-                                        <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                                            <div
-                                                className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-blue-400 transition-all duration-500"
-                                                style={{ width: `${pct}%` }}
-                                            />
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        <div className="px-6 py-3 flex flex-wrap gap-4">
-                            {liveData.status.length === 0 ? (
-                                <p className="text-sm text-slate-400 italic">Keine Clients gefunden</p>
-                            ) : liveData.status.map((s) => (
-                                <div key={s.id} className="flex items-center gap-2 text-sm">
-                                    <Wifi className={`w-4 h-4 ${s.online ? 'text-emerald-500' : 'text-slate-300'}`} />
-                                    <span className={`font-medium ${s.online ? 'text-slate-800' : 'text-slate-400'}`}>{s.name}</span>
-                                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${s.online ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                                        {s.online ? 'Online' : 'Offline'}
-                                    </span>
-                                </div>
-                            ))}
-                            <span className="text-xs text-slate-400 ml-auto italic self-center">Kein aktives Backup</span>
-                        </div>
-                    )}
-                </div>
-            )}
 
             {/* MacStudio rclone Widget */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
@@ -524,19 +479,27 @@ export default function DashboardPage() {
                 )}
             </div>
 
-            {/* UrBackup Widget – kompakt */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200">
-                <div className="px-6 py-4 flex flex-wrap items-center gap-4">
-                    <div className="flex items-center gap-3 shrink-0">
-                        <span className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
+            {/* Endgerät-Backups (URBackup) – vollständig */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                {/* Header */}
+                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <span className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
                             <Server className="w-5 h-5" />
                         </span>
-                        <div>
-                            <p className="font-bold text-slate-800 text-sm leading-tight">Endgerät-Backups (UrBackup)</p>
-                            <p className="text-xs text-slate-400">Sync: {formatRelative(urbackup?.sync?.last_sync_at ?? null)}</p>
+                        <div className="min-w-0">
+                            <h2 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                                <span className="relative flex h-2.5 w-2.5">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                                </span>
+                                Endgerät-Backups (URBackup)
+                            </h2>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                                Sync: {formatRelative(urbackup?.sync?.last_sync_at ?? null)} · Live aktualisiert alle 10 Sek.
+                            </p>
                         </div>
                     </div>
-
                     {hasUrBackupData && (
                         <div className="flex gap-2 flex-wrap">
                             <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border ${urbackup.clients_online > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
@@ -550,8 +513,7 @@ export default function DashboardPage() {
                             </span>
                         </div>
                     )}
-
-                    <div className="flex items-center gap-2 ml-auto flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
                         {urbackup?.sync?.last_sync_error && (
                             <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg flex items-center gap-1">
                                 <WifiOff className="w-3 h-3" /> Nicht erreichbar
@@ -575,33 +537,128 @@ export default function DashboardPage() {
                         </Link>
                     </div>
                 </div>
+
+                {/* Body: Aktive Backups mit Fortschritt / Idle Client-Liste */}
+                {liveData && (
+                    liveData.activities.current.length > 0 ? (
+                        <div className="divide-y divide-slate-50">
+                            {liveData.activities.current.map((act, i) => {
+                                const pct = Math.round(act.percent_done ?? 0);
+                                const etaSec = act.eta_ms > 0 ? Math.round(act.eta_ms / 1000) : null;
+                                const etaLabel = etaSec != null
+                                    ? etaSec < 60 ? `${etaSec}s` : etaSec < 3600 ? `${Math.round(etaSec / 60)}min` : `${(etaSec / 3600).toFixed(1)}h`
+                                    : '–';
+                                return (
+                                    <div key={i} className="px-6 py-4">
+                                        <div className="flex justify-between items-center mb-1.5">
+                                            <div className="flex items-center gap-2">
+                                                <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" />
+                                                <span className="font-semibold text-slate-800 text-sm">{act.name}</span>
+                                                <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{act.action}</span>
+                                                {act.paused && <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Pausiert</span>}
+                                            </div>
+                                            <div className="flex items-center gap-3 text-sm">
+                                                <span className="font-bold text-slate-800">{pct}%</span>
+                                                <span className="text-slate-400 text-xs">ETA: {etaLabel}</span>
+                                            </div>
+                                        </div>
+                                        <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                                            <div
+                                                className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-blue-400 transition-all duration-500"
+                                                style={{ width: `${pct}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="px-6 py-3 flex flex-wrap gap-4">
+                            {liveData.status.length === 0 ? (
+                                <p className="text-sm text-slate-400 italic">Keine Clients gefunden</p>
+                            ) : liveData.status.map((s) => (
+                                <div key={s.id} className="flex items-center gap-2 text-sm">
+                                    <Wifi className={`w-4 h-4 ${s.online ? 'text-emerald-500' : 'text-slate-300'}`} />
+                                    <span className={`font-medium ${s.online ? 'text-slate-800' : 'text-slate-400'}`}>{s.name}</span>
+                                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${s.online ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                                        {s.online ? 'Online' : 'Offline'}
+                                    </span>
+                                </div>
+                            ))}
+                            <span className="text-xs text-slate-400 ml-auto italic self-center">Kein aktives Backup</span>
+                        </div>
+                    )
+                )}
+
+                {/* NOK-Geräte-Hinweis */}
+                {(() => {
+                    const nokDevices = urbClients.filter(c =>
+                        (!c.file_disabled && !c.file_ok) || (!c.image_disabled && !c.image_ok)
+                    );
+                    if (nokDevices.length === 0) return null;
+                    return (
+                        <div className="px-6 py-3 border-t border-amber-100 bg-amber-50/50 flex flex-wrap items-center gap-2">
+                            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                            <span className="text-xs font-semibold text-amber-700">Backup-Problem bei:</span>
+                            {nokDevices.map(c => (
+                                <span key={c.id} className="text-xs bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full font-medium">{c.name}</span>
+                            ))}
+                            <Link to="/devices" className="text-xs text-amber-600 hover:text-amber-800 font-semibold ml-auto flex items-center gap-1">
+                                Details <ArrowRight className="w-3 h-3" />
+                            </Link>
+                        </div>
+                    );
+                })()}
             </div>
 
-            {/* Upcoming / Active Jobs Panel */}
-            <div>
-                <div className="flex justify-between items-end mb-6">
-                    <h2 className="text-2xl font-bold text-slate-800">Aktive Backup Pläne</h2>
-                    <Link to="/jobs" className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center transition-colors">
-                        Alle verwalten <ArrowRight className="w-4 h-4 ml-1" />
+            {/* Aktive Backup-Pläne – kompakte Liste */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                    <h2 className="font-bold text-slate-800 flex items-center gap-2">
+                        <span className="w-7 h-7 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                            <Clock className="w-4 h-4" />
+                        </span>
+                        Aktive Backup-Pläne
+                    </h2>
+                    <Link to="/jobs" className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1">
+                        Alle verwalten <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
                 </div>
-
                 {data?.upcoming && data.upcoming.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="divide-y divide-slate-50">
                         {data.upcoming.map(job => (
-                            <JobCard
-                                key={job.id}
-                                job={job}
-                                isAdmin={isAdmin}
-                                onRun={handleRunJob}
-                                onEdit={handleEditJob}
-                                onDelete={handleEditJob}
-                            />
+                            <div key={job.id} className="px-6 py-3.5 flex flex-wrap items-center gap-3 hover:bg-slate-50/50 transition-colors group">
+                                <div className={`w-1.5 h-6 rounded-full shrink-0 ${job.is_active ? 'bg-emerald-400' : 'bg-slate-300'}`} />
+                                <span className="font-semibold text-slate-800 text-sm flex-1 min-w-[120px] truncate">{job.name}</span>
+                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                    job.backup_type === 'full'        ? 'bg-purple-100 text-purple-700' :
+                                    job.backup_type === 'incremental' ? 'bg-blue-100 text-blue-700' :
+                                    job.backup_type === 'gobd'        ? 'bg-emerald-100 text-emerald-700' :
+                                    'bg-orange-100 text-orange-700'
+                                }`}>{job.backup_type}</span>
+                                <span className="text-xs text-slate-400 hidden sm:block truncate max-w-[260px]">
+                                    {Array.isArray(job.destination) ? job.destination.join(' · ') : job.destination}
+                                </span>
+                                {job.next_run && (
+                                    <span className="text-xs text-slate-500 flex items-center gap-1 ml-auto shrink-0">
+                                        <Clock className="w-3 h-3" />
+                                        {format(new Date(job.next_run), 'dd.MM. HH:mm')}
+                                    </span>
+                                )}
+                                {isAdmin && (
+                                    <button
+                                        onClick={() => handleRunJob(job.id)}
+                                        className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                                    >
+                                        <Play className="w-3 h-3" /> Starten
+                                    </button>
+                                )}
+                            </div>
                         ))}
                     </div>
                 ) : (
-                    <div className="bg-slate-50 border border-slate-200 border-dashed rounded-2xl p-12 text-center text-slate-500">
-                        Es wurden noch keine Backup-Jobs angelegt. Nutze den Button oben, um den ersten Plan zu konfigurieren.
+                    <div className="px-6 py-12 text-center text-slate-400 text-sm">
+                        Noch keine Backup-Pläne angelegt. Nutze den Button oben, um den ersten Plan zu konfigurieren.
                     </div>
                 )}
             </div>

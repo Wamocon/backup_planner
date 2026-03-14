@@ -54,7 +54,6 @@ export default function Layout() {
                 { id: 'rule-321', label: 'Die 3-2-1 Regel' },
                 { id: 'backup-types', label: 'Backup-Arten' },
                 { id: 'faq', label: 'Häufige Fragen (FAQ)' },
-                { id: 'urbackup', label: 'Notebooks (UrBackup)' },
                 { id: 'manual', label: 'Handbuch & Suche' }
             ]
         },

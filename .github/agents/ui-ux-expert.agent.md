@@ -50,12 +50,30 @@ frontend/src/
 - DO NOT weiche vom bestehenden Design-System ab
 - ONLY schlage Änderungen vor, die den Nutzer-Workflow verbessern
 
+## Bekannte Schwachstellen (Stand März 2026)
+
+Prüfe bei jedem Review gezielt folgende bereits identifizierten Problembereiche:
+
+| # | Problem | Betroffene Seite |
+|---|---------|-----------------|
+| 1 | Aktionsbuttons via `opacity-0 group-hover` → auf Touch unsichtbar | JobsPage |
+| 2 | `confirm()` / `alert()` für kritische Aktionen | Dashboard, JobsPage |
+| 3 | Kein Cron-Vorschautext bei benutzerdefiniertem Zeitplan | JobModal |
+| 4 | Banner "Backup läuft" ohne Refresh-Button | Dashboard |
+| 5 | Deutsch/Englisch gemischt (Seitentitel, Spaltenheader, Alerts) | Global |
+| 6 | Kein Speicherplatz-Indikator für NAS / Cloud | Dashboard, fehlt |
+| 7 | "Nächste Ausführung" fehlt in der Jobs-Tabelle (nur in JobCard) | JobsPage |
+| 8 | Log-Ansicht ohne Suche, Filter oder Export | LogsPage |
+| 9 | Architekturseite rein statisch, kein Live-Verbindungsstatus | ArchitecturePage |
+| 10 | "Neuen Plan erstellen" Button 3x vorhanden (Dashboard, Jobs, Kalender) | Global |
+
 ## Vorgehensweise
 
 1. Lese die betreffende Seite/Komponente vollständig
 2. Analysiere: Layout, Hierarchy, Interaktion, Accessibility, Responsiveness
-3. Präsentiere Verbesserungsoptionen mit **Pros/Cons** in einer klaren Übersicht
-4. Warte auf Freigabe, dann implementiere
+3. Prüfe explizit die bekannten Schwachstellen in der Tabelle oben
+4. Präsentiere Verbesserungsoptionen mit **Pros/Cons** in einer klaren Übersicht
+5. Warte auf Freigabe, dann implementiere
 
 ## Output-Format
 

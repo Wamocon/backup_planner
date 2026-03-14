@@ -3,6 +3,9 @@ import client from '../api/client';
 import { useAuthStore } from '../store/auth.store';
 import { Plus, Edit, Trash2, Play, Loader2, Database } from 'lucide-react';
 import JobModal from '../components/JobModal';
+import { CronExpressionParser } from 'cron-parser';
+import { format } from 'date-fns';
+import { de } from 'date-fns/locale';
 
 interface Job {
     id: number;
@@ -14,6 +17,16 @@ interface Job {
     retention_days: number;
     is_active: number;
 }
+
+const getNextRun = (cronStr: string): string => {
+    try {
+        const interval = CronExpressionParser.parse(cronStr);
+        const next = interval.next().toDate();
+        return format(next, 'EEE, dd.MM. HH:mm', { locale: de });
+    } catch {
+        return '–';
+    }
+};
 
 export default function JobsPage() {
     const [jobs, setJobs] = useState<Job[]>([]);
@@ -102,7 +115,7 @@ export default function JobsPage() {
                             <tr>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Plan & Typ</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Verbindung (Quelle → Ziel)</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Erweiterte Settings</th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Zeitplan & Einstellungen</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
                                 {isAdmin && <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Aktionen</th>}
                             </tr>
@@ -131,6 +144,11 @@ export default function JobsPage() {
                                     </td>
                                     <td className="px-6 py-5 whitespace-nowrap">
                                         <div className="text-sm text-slate-700">Cron: <code className="font-semibold text-indigo-600">{job.schedule}</code></div>
+                                        {job.is_active ? (
+                                            <div className="text-xs text-emerald-600 mt-0.5 font-medium">Nächster Lauf: {getNextRun(job.schedule)}</div>
+                                        ) : (
+                                            <div className="text-xs text-slate-400 mt-0.5">Pausiert – kein nächster Lauf</div>
+                                        )}
                                         <div className="text-xs text-slate-500 mt-1">Retention: {job.retention_days} Tage</div>
                                     </td>
                                     <td className="px-6 py-5 whitespace-nowrap">

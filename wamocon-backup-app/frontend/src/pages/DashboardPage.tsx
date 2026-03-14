@@ -271,9 +271,17 @@ export default function DashboardPage() {
                     <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center mr-4 shrink-0">
                         <Loader2 className="w-6 h-6 text-indigo-600 animate-spin" />
                     </div>
-                    <div>
+                    <div className="flex-1">
                         <h3 className="text-indigo-900 font-bold text-lg">Backups werden gerade ausgeführt</h3>
-                        <p className="text-indigo-700/80">Im Hintergrund laufen aktuell rclone Synchronisationen. Lade das Dashboard neu für den aktuellen Status.</p>
+                        <div className="flex items-center gap-3 flex-wrap mt-1">
+                            <p className="text-indigo-700/80">Im Hintergrund laufen aktuell rclone Synchronisationen.</p>
+                            <button
+                                onClick={fetchDashboard}
+                                className="flex items-center gap-1.5 text-sm font-semibold text-indigo-700 hover:text-indigo-900 bg-indigo-100 hover:bg-indigo-200 px-3 py-1.5 rounded-lg transition-colors"
+                            >
+                                <RefreshCw className="w-3.5 h-3.5" /> Aktualisieren
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
@@ -284,7 +292,10 @@ export default function DashboardPage() {
                     <ShieldAlert className="w-6 h-6 text-orange-500 mr-4 shrink-0 mt-0.5" />
                     <div>
                         <h3 className="text-orange-900 font-bold">Empfehlung: 3-2-1 Backup Regel</h3>
-                        <p className="text-orange-800 mt-1 max-w-3xl">Es scheint, als würdest du deine Backups nicht lokal und in der Cloud (Offsite) separat aufteilen. Es wird dringend empfohlen sowohl ein NAS-Ziel als auch ein Cloud-Ziel in deinen Jobs einzuplanen, um optimal vor Ransomware geschützt zu sein.</p>
+                        <p className="text-orange-800 mt-1">Deine Backup-Ziele erfüllen noch nicht die 3-2-1-Regel. Richte sowohl ein lokales (NAS) als auch ein Cloud-Ziel ein.</p>
+                        <Link to="/help#rule-321" className="inline-flex items-center gap-1 mt-2 text-sm font-semibold text-orange-700 hover:text-orange-900 underline underline-offset-2">
+                            Mehr erfahren <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
                     </div>
                 </div>
             )}
@@ -297,6 +308,16 @@ export default function DashboardPage() {
                     </div>
                     <h3 className="text-slate-500 text-sm font-semibold uppercase tracking-wider mb-2 z-10">Konfigurierte Pläne</h3>
                     <p className="text-5xl font-black text-slate-800 tracking-tight z-10">{data?.jobs_count || 0}</p>
+                    <div className="flex gap-2 mt-3 z-10">
+                        <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                            {data?.upcoming?.length || 0} aktiv
+                        </span>
+                        {((data?.jobs_count || 0) - (data?.upcoming?.length || 0)) > 0 && (
+                            <span className="text-xs font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
+                                {(data?.jobs_count || 0) - (data?.upcoming?.length || 0)} pausiert
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">

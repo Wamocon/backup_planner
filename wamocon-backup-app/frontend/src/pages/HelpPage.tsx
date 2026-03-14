@@ -1,63 +1,74 @@
 import { useState } from 'react';
-import { LifeBuoy, ShieldCheck, Database, History, Info, BookOpen, Fingerprint, Search, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { LifeBuoy, Info, BookOpen, Search, ChevronRight, MessageSquare, AlertTriangle } from 'lucide-react';
 
 export default function HelpPage() {
     const [searchTerm, setSearchTerm] = useState('');
 
-    const manualEntries = [
+    const troubleshootingEntries = [
         {
             title: "Wie lege ich einen neuen Backup-Plan an?",
-            content: "Gehe navigiere in der linken Seitenleiste auf 'Backup Plans' oder direkt in den 'Kalender'. Klicke auf 'Neuen Plan erstellen'. Wähle einen Titel, deine zuvor konfigurierte Quelle (z.B. lokaler Pfad) und das Ziel (z.B. Cloud-Speicher). Danach legst du einen Cron-Zeitplan für die Automatisierung fest.",
-            keywords: ["job", "plan", "erstellen", "neu", "cron", "zeitplan", "kalender"]
+            content: "Navigiere in der linken Seitenleiste auf 'Backup-Pläne'. Klicke auf 'Neuen Plan erstellen'. Wähle einen Titel, deine Quelle (z.B. lokaler Pfad) und das Ziel (z.B. rclone-Remote). Danach legst du einen Cron-Zeitplan für die Automatisierung fest.",
+            category: "Nutzung",
+            keywords: ["job", "plan", "erstellen", "neu", "cron", "zeitplan"]
         },
         {
             title: "Was hat es mit Quelle und Ziel auf sich?",
-            content: "Die Quelle ist der Ordner oder das Laufwerk auf dem WAMOCON Mac Studio, das gesichert werden soll. Das Ziel ist oft ein rclone-Remote, z.B. 'wmc-onedrive:'. Diese Remotes müssen vorher über das Terminal auf dem Server konfiguriert werden ('rclone config').",
+            content: "Die Quelle ist der Ordner oder das Laufwerk auf dem WAMOCON Mac Studio, das gesichert werden soll. Das Ziel ist ein rclone-Remote, z.B. 'wmc-onedrive:'. Diese Remotes müssen vorher über das Terminal auf dem Server konfiguriert werden ('rclone config').",
+            category: "Nutzung",
             keywords: ["quelle", "ziel", "rclone", "remote", "pfad", "wmc-onedrive"]
         },
         {
             title: "Was bedeutet die Cron-Syntax?",
-            content: "Cron ist ein Standardformat für Zeitpläne. '* * * * *' steht für Minute, Stunde, Tag im Monat, Monat, und Wochentag. Beispiele: '0 20 * * *' bedeutet jeden Tag um 20:00 Uhr. '0 2 * * 0' bedeutet jeden Sonntag um 02:00 Uhr.",
+            content: "Cron ist ein Standardformat für Zeitpläne. '* * * * *' steht für Minute, Stunde, Tag im Monat, Monat und Wochentag. Beispiele: '0 20 * * *' = täglich um 20:00 Uhr. '0 2 * * 0' = jeden Sonntag um 02:00 Uhr.",
+            category: "Nutzung",
             keywords: ["cron", "syntax", "zeitplan", "uhrzeit", "planung", "intervall"]
         },
         {
             title: "Wo sehe ich, ob ein Backup erfolgreich war?",
-            content: "Auf der Seite 'Logs & Results' findest du ein ausführliches Protokoll aller bisherigen Ausführungen. Erfolgreiche Jobs sind grün markiert. Wenn ein Job rot markiert ist, klicke auf das Detail-Icon, um den genauen rclone-Output zur Fehlersuche einzusehen.",
+            content: "Auf der Seite 'Protokolle' findest du ein ausführliches Protokoll aller bisherigen Ausführungen. Erfolgreiche Jobs sind grün markiert. Klicke auf das Detail-Icon eines rot markierten Jobs, um den genauen rclone-Output zur Fehlersuche einzusehen.",
+            category: "Nutzung",
             keywords: ["logs", "fehler", "erfolg", "resultate", "protokoll", "fehlgeschlagen"]
         },
         {
             title: "Was ist der Unterschied zwischen Sync und Copy?",
-            content: "Sync (Voll/Spiegelung) macht das Ziel exakt gleich zur Quelle – Dateien, die in der Quelle gelöscht werden, verschwinden auch im Ziel. Copy (Inkrementell) fügt nur neue oder geänderte Dateien hinzu, löscht jedoch im Ziel niemals etwas. Für Cloud-Backups wird fast immer Copy empfohlen.",
+            content: "Sync (Spiegelung) macht das Ziel exakt gleich zur Quelle – Dateien, die in der Quelle gelöscht werden, verschwinden auch im Ziel. Copy (Inkrementell) fügt nur neue oder geänderte Dateien hinzu, löscht jedoch nie etwas im Ziel. Für Cloud-Backups wird fast immer Copy empfohlen.",
+            category: "Nutzung",
             keywords: ["sync", "copy", "unterschied", "löschen", "inkrementell", "voll", "cloud"]
         },
         {
             title: "Wie ändere ich die Aufbewahrungsdauer (Retention)?",
-            content: "Beim Bearbeiten eines Backup-Plans gibt es ein Feld 'Aufbewahrung (Tage)'. Wenn hier z.B. 30 eintragen wird, sorgt das System dafür, dass gelöschte Dateien aus der Quelle noch 30 Tage im Cloud-Papierkorb oder Backup-Ordner verbleiben (abhängig von der rclone und Ziel-Konfiguration).",
+            content: "Beim Bearbeiten eines Backup-Plans gibt es ein Feld 'Aufbewahrung (Tage)'. Bei z.B. 30 Tagen sorgt das System dafür, dass gelöschte Dateien 30 Tage im Cloud-Papierkorb oder Backup-Ordner verbleiben.",
+            category: "Nutzung",
             keywords: ["retention", "aufbewahrung", "löschen", "tage", "papierkorb"]
         },
         {
             title: "UrBackup Client verbindet sich nicht (Offline)",
-            content: "Wenn der Windows/Mac Client nach der Installation im UrBackup-Dashboard (Port 55414) als offline angezeigt wird, blockiert vermutlich eine Firewall (z.B. macOS Firewall am Server oder Windows Defender am Client) die automatische UDP-Erkennung. Lösung: 1. Im UrBackup Server unter Einstellungen -> Server auf 'Mache Internet-Backups' stellen und die Server-IP (z.B. 192.168.178.62) eintragen. 2. Am Client (z.B. Windows) Rechtsklick aufs UrBackup Symbol in der Taskleiste -> Status. Dann SHIFT+Rechtsklick auf das Symbol -> 'Internet-Server konfigurieren' (bzw. in den Einstellungen) und dort ebenfalls die Server-IP hinterlegen. UrBackup nutzt dann Port 55415 für die direkte Verbindung.",
+            content: "Wenn der Windows/Mac Client im UrBackup-Dashboard als offline angezeigt wird, blockiert vermutlich eine Firewall die UDP-Erkennung. Lösung: Im UrBackup Server unter Einstellungen → Server auf 'Mache Internet-Backups' stellen und die Server-IP hinterlegen. Am Client (Windows) SHIFT+Rechtsklick auf das UrBackup-Symbol → 'Internet-Server konfigurieren' und dort die Server-IP eintragen. UrBackup nutzt dann Port 55415.",
+            category: "Problemlösung",
             keywords: ["urbackup", "client", "offline", "verbindung", "internet", "port", "firewall", "windows", "mac"]
         },
         {
             title: "Fehler: Warte auf den lokalen Backup Server (UrBackup)",
-            content: "Wenn der Client meldet 'Warte auf den lokalen Backup Server' oder 'Authentication failure: Unknown client', kennt der Server (Mac Studio) diesen PC noch nicht oder die Internet-Einstellungen sind falsch. Lösung: 1. Im UrBackup Web-Dashboard (Port 55414) ganz unten auf 'Neuen Client hinzufügen' -> 'Internet/aktiver Client' klicken. Als Name EXAKT den Computernamen aus der Fehlermeldung eingeben (z.B. WMC-H-06-EM). 2. Das angezeigte Internet-Passwort kopieren. 3. Unter Windows via SHIFT+Rechtsklick auf das UrBackup-Icon -> 'Internet-Server konfigurieren' das neue Passwort eintragen. WICHTIG: Das Feld 'Internet server HTTP(s) proxy' MUSS zwingend leer bleiben!",
+            content: "Wenn der Client meldet 'Warte auf den lokalen Backup Server' oder 'Authentication failure: Unknown client', kennt der Server diesen PC noch nicht. Lösung: Im UrBackup Web-Dashboard (Port 55414) auf 'Neuen Client hinzufügen' → 'Internet/aktiver Client'. Als Name EXAKT den Computernamen aus der Fehlermeldung eingeben. Das angezeigte Internet-Passwort kopieren. Am Windows-Client SHIFT+Rechtsklick → 'Internet-Server konfigurieren' und Passwort eintragen. WICHTIG: Das Feld 'Internet server HTTP(s) proxy' MUSS leer bleiben!",
+            category: "Problemlösung",
             keywords: ["urbackup", "warte", "server", "lokal", "authentication", "failure", "proxy", "passwort", "windows"]
         },
         {
             title: "Fehler am Server: err_file_system_case_insensitive (Mac)",
-            content: "Dieser Fehler taucht rot im Mac-Dashboard auf, wenn Docker versucht, Backups auf der normalen Mac-Festplatte zu speichern. Macs nutzen standardmäßig ein Dateisystem OHNE Groß-/Kleinschreibung (APFS), UrBackup verlangt aber zwingend eine Unterscheidung (Case-Sensitive). Lösung: 1. Öffne am Mac das 'Festplattendienstprogramm' (Disk Utility). 2. Klicke oben auf das '+' Symbol (Volume hinzufügen). 3. Nenne es z.B. 'UrBackupStorage' und wähle als Format 'APFS (Groß-/Kleinschreibung)' (Case-sensitive). 4. Öffne deine docker-compose.yml und ändere den Pfad bei den Volumes auf dein neues Volume (meist: `- /Volumes/UrBackupStorage:/backups`). 5. Starte den Docker-Container neu.",
-            keywords: ["urbackup", "error", "err_file_system_case_insensitive", "mac", "apfs", "case-sensitive", "festplattendienstprogramm", "docker", "volume"]
+            content: "Dieser Fehler tritt auf, wenn Docker versucht, Backups auf einer normalen APFS-Partition zu speichern. Lösung: Öffne 'Festplattendienstprogramm', klicke auf '+' (Volume hinzufügen), nenne es z.B. 'UrBackupStorage' und wähle 'APFS (Groß-/Kleinschreibung)'. In der docker-compose.yml den Volume-Pfad auf das neue Volume anpassen und den Container neu starten.",
+            category: "Problemlösung",
+            keywords: ["urbackup", "error", "err_file_system_case_insensitive", "mac", "apfs", "case-sensitive", "docker", "volume"]
         },
         {
             title: "Fehler: No permission to access '/backups/...'",
-            content: "Wenn UrBackup meldet, er habe keine Schreibrechte auf das Backup-Verzeichnis (insbesondere am Mac bei neu angelegten Volumes), muss man Docker diese Rechte manuell geben. Lösung: Öffne das Terminal am Mac. Anstatt das ganze Volume zu ändern (was oft zu 'Operation not permitted' bei versteckten Apple-Dateien wie .Trashes führt), gib nur den konkreten Ordnern Rechte: 'sudo chmod -R 777 /Volumes/DeinLaufwerk/backups' und 'sudo chmod -R 777 /Volumes/DeinLaufwerk/urbackup'. Starte danach den UrBackup Docker-Container neu.",
-            keywords: ["urbackup", "permission", "schreibrechte", "zugriff", "verweigert", "chmod", "operation not permitted", "trashes", "mac", "docker"]
+            content: "Wenn UrBackup keine Schreibrechte auf das Backup-Verzeichnis hat, öffne das Terminal am Mac und gib nur den konkreten Ordnern Rechte: 'sudo chmod -R 777 /Volumes/DeinLaufwerk/backups' und 'sudo chmod -R 777 /Volumes/DeinLaufwerk/urbackup'. Danach UrBackup Docker-Container neu starten.",
+            category: "Problemlösung",
+            keywords: ["urbackup", "permission", "schreibrechte", "zugriff", "verweigert", "chmod", "operation not permitted", "mac", "docker"]
         }
     ];
 
-    const filteredEntries = manualEntries.filter(entry => {
+    const filteredEntries = troubleshootingEntries.filter(entry => {
         const term = searchTerm.toLowerCase();
         return (
             entry.title.toLowerCase().includes(term) ||
@@ -66,6 +77,8 @@ export default function HelpPage() {
         );
     });
 
+    const categories = ['Nutzung', 'Problemlösung'];
+
     return (
         <div className="animate-in fade-in duration-500 max-w-5xl mx-auto space-y-10 pb-12">
 
@@ -73,272 +86,153 @@ export default function HelpPage() {
             <div>
                 <h1 className="text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-3">
                     <LifeBuoy className="w-8 h-8 text-blue-500" />
-                    Hilfe & Erklärungen
+                    Hilfe & Support
                 </h1>
                 <p className="mt-3 text-slate-500 text-lg leading-relaxed">
-                    Willkommen im integrierten Handbuch des WAMOCON Backup Planers. Hier erfährst du alles Wichtige über die Funktionsweise des Systems, verschiedene Backup-Strategien und Best-Practices für maximale Datensicherheit.
+                    Schnelle Antworten auf häufige Fragen zur App-Bedienung sowie Lösungen für bekannte Probleme.
+                    Für tiefergehende Erklärungen zu Backup-Konzepten und Systemaufbau,{' '}
+                    <Link to="/manual" className="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-1">
+                        <BookOpen className="w-4 h-4" />lies das Handbuch
+                    </Link>.
                 </p>
             </div>
 
-            {/* Die 3-2-1 Regel */}
-            <section id="rule-321" className="scroll-mt-28 bg-gradient-to-br from-indigo-900 to-slate-900 rounded-3xl p-8 sm:p-10 shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-                    <ShieldCheck className="w-64 h-64 text-white" />
-                </div>
-                <div className="relative z-10">
-                    <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-3">
-                        Die goldene 3-2-1 Backup Regel
-                    </h2>
-                    <p className="text-indigo-200 text-lg mb-8 max-w-3xl">
-                        Um sich effektiv gegen Datenverlust (wie z.B. durch Ransomware, Hardware-Defekte oder Diebstahl) abzusichern, empfehlen IT-Experten die sogenannte 3-2-1 Regel:
-                    </p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-6 rounded-2xl">
-                            <div className="text-5xl font-black text-white mb-2 opacity-50">3</div>
-                            <h3 className="text-lg font-bold text-white mb-2">Ausfertigungen</h3>
-                            <p className="text-indigo-200 text-sm leading-relaxed">Bewahre immer mindestens drei Kopien deiner wichtigen Daten auf (1 Original + 2 Backups).</p>
-                        </div>
-                        <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-6 rounded-2xl">
-                            <div className="text-5xl font-black text-white mb-2 opacity-50">2</div>
-                            <h3 className="text-lg font-bold text-white mb-2">Medien-Typen</h3>
-                            <p className="text-indigo-200 text-sm leading-relaxed">Verwende mindestens zwei unterschiedliche Speichermedien (z.B. NAS / externe Festplatte + Cloud-Speicher).</p>
-                        </div>
-                        <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-6 rounded-2xl">
-                            <div className="text-5xl font-black text-white mb-2 opacity-50">1</div>
-                            <h3 className="text-lg font-bold text-white mb-2">Offsite-Kopie</h3>
-                            <p className="text-indigo-200 text-sm leading-relaxed">Lagere mindestens eine Kopie an einem anderen geografischen Ort (z.B. Microsoft OneDrive, Google Drive).</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Backup-Arten erklärt */}
-            <section id="backup-types" className="scroll-mt-28">
-                <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                    <Database className="w-6 h-6 text-indigo-500" />
-                    Welcher Backup-Typ ist der richtige?
+            {/* Quick FAQ Cards */}
+            <section>
+                <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <Info className="w-5 h-5 text-indigo-500" />
+                    Häufige Fragen
                 </h2>
-                <div className="space-y-6">
-
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 items-start">
-                        <div className="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
-                            <Database className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <h3 className="text-xl font-bold text-slate-800 mb-2">Vollbackup (Full)</h3>
-                            <p className="text-slate-600 mb-3 leading-relaxed">
-                                Beim Vollbackup werden <strong>alle Ausgewählten Daten</strong> unabhängig davon, ob sie verändert wurden oder nicht, in das Zielverzeichnis kopiert.
-                            </p>
-                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm text-slate-600">
-                                <strong>Vorteile:</strong> Sehr sicher und einfach wiederherzustellen.<br />
-                                <strong>Nachteile:</strong> Benötigt bei jedem Lauf viel Speicherplatz und Zeit, besonders bei großen Datenmengen in der Cloud.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 border-l-4 border-l-blue-500 shadow-sm flex flex-col md:flex-row gap-6 items-start">
-                        <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                            <History className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <h3 className="text-xl font-bold text-slate-800 mb-2">Inkrementelles Backup <span className="text-sm font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded ml-2">Empfohlen für Cloud</span></h3>
-                            <p className="text-slate-600 mb-3 leading-relaxed">
-                                Dieses Backup kopiert <strong>nur die Dateien, die sich seit dem letzten Lauf geändert haben oder neu hinzugekommen sind</strong>.
-                            </p>
-                            <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100/50 text-sm text-slate-700">
-                                <strong>Anwendungsfall:</strong> Dies ist die effizienteste Methode für den WAMOCON Planer, wenn Daten zu OneDrive oder Google Drive synchronisiert werden, da Bandbreite und Speicher extrem geschont werden.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 items-start">
-                        <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
-                            <Fingerprint className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <h3 className="text-xl font-bold text-slate-800 mb-2">Differenzielles Backup</h3>
-                            <p className="text-slate-600 mb-3 leading-relaxed">
-                                Speichert alle Änderungen, die seit dem <em>letzten Vollbackup</em> gemacht wurden. Es wächst also mit jedem Lauf an, bis wieder ein Vollbackup gemacht wird.
-                            </p>
-                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm text-slate-600">
-                                Wird seltener genutzt, ist oft ein Mittelweg zwischen der Geschwindigkeit des inkrementellen und der einfachen Wiederherstellung des Vollbackups.
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </section>
-
-            {/* FAQ / How to Use */}
-            <section id="faq" className="scroll-mt-28">
-                <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                    <BookOpen className="w-6 h-6 text-indigo-500" />
-                    Häufige Fragen zur App-Nutzung
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                         <h4 className="font-bold text-slate-800 mb-2 flex items-start gap-2">
                             <Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
                             Was bedeutet "Aufbewahrung (Retention)"?
                         </h4>
                         <p className="text-sm text-slate-600 leading-relaxed">
-                            Die Aufbewahrung gibt an, wie viele Tage lang Backups vorgehalten werden sollen, bevor sie automatisiert gelöscht werden, um Speicherplatz zu sparen. Stellst du 30 Tage ein, bereinigt das System bei jedem Lauf alte Daten.
+                            Die Aufbewahrung gibt an, wie viele Tage Backups vorgehalten werden sollen, bevor sie automatisch gelöscht werden, um Speicherplatz zu sparen.
                         </p>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                         <h4 className="font-bold text-slate-800 mb-2 flex items-start gap-2">
                             <Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
-                            Wie lege ich die Quellen & Ziele an?
+                            Wie richte ich Quellen & Ziele ein?
                         </h4>
                         <p className="text-sm text-slate-600 leading-relaxed">
-                            Die im Dropdown angegebenen Quellen wie <code className="bg-slate-100 px-1 rounded">wmc-onedrive:</code> müssen zuvor im Kernsystem des MacStudio Servers über die rclone Kommandozeile (`rclone config`) eingerichtet und autorisiert worden sein.
+                            Remotes wie <code className="bg-slate-100 px-1 rounded">wmc-onedrive:</code> müssen vorher auf dem MacStudio-Server über die rclone-Kommandozeile (<code className="bg-slate-100 px-1 rounded">rclone config</code>) eingerichtet werden.
                         </p>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
                         <h4 className="font-bold text-slate-800 mb-2 flex items-start gap-2">
                             <Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
-                            Kann ich Jobs auch manuell ausführen?
+                            Kann ich Jobs auch manuell starten?
                         </h4>
                         <p className="text-sm text-slate-600 leading-relaxed">
-                            Ja! Auf dem Dashboard und unter "Backup Plans" kannst du über den "Starten"-Button jederzeit einen geplanten Lauf vorziehen und sofort auslösen.
+                            Ja. Auf dem Dashboard und unter "Backup-Pläne" kannst du über den "Starten"-Button jederzeit einen geplanten Lauf sofort auslösen.
                         </p>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
                         <h4 className="font-bold text-slate-800 mb-2 flex items-start gap-2">
                             <Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
-                            Was passiert wenn ein Backup abbbricht?
+                            Was passiert, wenn ein Backup abbricht?
                         </h4>
                         <p className="text-sm text-slate-600 leading-relaxed">
-                            Fehlschläge werden in der Ansicht "Logs & Ergebnisse" mit rotem Status markiert. Zudem verschickt das System (sofern das SMTP Postfach richtig konfiguriert ist) automatisch eine Fehler-E-Mail.
+                            Fehlschläge werden unter "Protokolle" mit rotem Status markiert. Sofern SMTP korrekt konfiguriert ist, verschickt das System automatisch eine Fehler-E-Mail.
                         </p>
-                    </div>
-
-                </div>
-            </section>
-
-            {/* UrBackup Integration Section */}
-            <section id="urbackup" className="scroll-mt-28 bg-indigo-900 rounded-3xl p-8 sm:p-10 shadow-xl relative overflow-hidden text-white">
-                <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-                    <Database className="w-64 h-64 text-indigo-300" />
-                </div>
-                <div className="relative z-10">
-                    <h2 className="text-2xl font-bold mb-4 flex items-center gap-3">
-                        Notebook-Sicherungen (UrBackup)
-                    </h2>
-                    <p className="text-indigo-200 text-lg mb-8 max-w-3xl">
-                        Für die vollständige und inkrementelle Sicherung von Mitarbeiter-Notebooks (Windows & macOS) verwenden wir das eigenständige System <strong>UrBackup</strong>.
-                    </p>
-
-                    <div className="space-y-6">
-                        {/* Step 1 Server */}
-                        <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-6 rounded-2xl">
-                            <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-                                <span className="bg-indigo-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
-                                Server auf dem Mac Studio aufsetzen
-                            </h3>
-                            <p className="text-indigo-100 mb-4 text-sm leading-relaxed">
-                                Da UrBackup nativ primär für Linux/Windows Server gedacht ist, betreiben wir ihn auf dem Mac Studio über <strong>Docker</strong> (empfohlen: OrbStack oder Docker Desktop). Nutze folgende <code>docker-compose.yml</code> um den Container zu starten:
-                            </p>
-                            <pre className="bg-slate-900/50 p-4 rounded-xl text-xs font-mono text-indigo-300 overflow-x-auto border border-white/10">
-                                {`version: '3'
-services:
-  urbackup:
-    image: uroni/urbackup-server:latest
-    container_name: urbackup-server
-    restart: unless-stopped
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/Berlin
-    volumes:
-      - /path/to/mac/storage/backup:/backups
-      - /path/to/mac/storage/database:/var/urbackup
-    # Standard-Ports für Web-Interface und Client-Backups
-    ports:
-      - "55413-55415:55413-55415"
-      - "35623:35623/udp"`}
-                            </pre>
-                            <p className="text-indigo-200 text-xs mt-3">Tipp: Ersetze die <code>/path/to/mac/storage/...</code> Pfade mit den echten Verzeichnissen oder externen Festplatten an deinem Mac Studio.</p>
-                        </div>
-
-                        {/* Step 2 Clients */}
-                        <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-6 rounded-2xl">
-                            <h3 className="text-xl font-bold mb-3 flex items-center gap-2">
-                                <span className="bg-indigo-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">2</span>
-                                Endgeräte (Clients) verbinden
-                            </h3>
-                            <ul className="list-disc pl-5 text-indigo-100 text-sm space-y-2 leading-relaxed">
-                                <li>Lade den offiziellen Client für Windows oder macOS herunter: <a href="https://www.urbackup.org/download.html" target="_blank" rel="noreferrer" className="text-blue-300 hover:text-white underline outline-none">Download Seite</a>.</li>
-                                <li>Installiere den Client auf dem entsprechenden Notebook.</li>
-                                <li>Während der Installation sucht der Client (im selben LAN) automatisch nach dem passenden UrBackup Server.</li>
-                                <li><strong>Internet-Backups:</strong> Damit Backups auch im Homeoffice funktionieren, muss in den Server-Einstellungen eine öffentliche IP / Domain oder ein internes VPN konfiguriert sein, die der Client erreichen kann.</li>
-                            </ul>
-                        </div>
                     </div>
                 </div>
             </section>
 
-            {/* Handbuch & Suche */}
-            <section id="manual" className="scroll-mt-28 pb-12">
+            {/* Searchable Troubleshooting */}
+            <section id="troubleshooting">
                 <div className="bg-slate-900 rounded-3xl p-8 sm:p-10 shadow-xl overflow-hidden relative">
                     <div className="absolute -top-24 -right-24 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
                     <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
                     <div className="relative z-10">
-                        <div className="mb-8">
-                            <h2 className="text-3xl font-bold text-white flex items-center gap-3">
-                                <BookOpen className="w-8 h-8 text-blue-400" />
-                                Integriertes Handbuch
+                        <div className="mb-6">
+                            <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                                <AlertTriangle className="w-7 h-7 text-yellow-400" />
+                                Problemlösung & Anleitungen
                             </h2>
-                            <p className="text-slate-400 mt-2 text-lg">Suche nach Stichworten, um schnelle Hilfe zu bestimmten App-Funktionen zu finden.</p>
+                            <p className="text-slate-400 mt-2">Suche nach Stichworten, um schnelle Hilfe zu finden.</p>
                         </div>
 
-                        <div className="relative mb-10 max-w-2xl">
+                        <div className="relative mb-8 max-w-2xl">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 <Search className="h-5 w-5 text-slate-400" />
                             </div>
                             <input
                                 type="text"
-                                className="block w-full pl-11 pr-4 py-4 border border-slate-700 rounded-2xl leading-5 bg-slate-800/50 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-slate-800 transition-all font-medium"
-                                placeholder="Suche in Anleitungen (z.B. 'Cron', 'Quelle', 'Zeitplan')..."
+                                className="block w-full pl-11 pr-4 py-4 border border-slate-700 rounded-2xl bg-slate-800/50 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-medium"
+                                placeholder="Suche nach Problem oder Stichwort (z.B. 'Cron', 'UrBackup', 'Offline')..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {filteredEntries.length > 0 ? (
-                                filteredEntries.map((entry, idx) => (
-                                    <div key={idx} className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 hover:bg-slate-800 transition-colors group">
-                                        <h3 className="text-lg font-bold text-white mb-3 flex items-start gap-2">
-                                            <ChevronRight className="w-5 h-5 text-blue-500 shrink-0 mt-0.5 group-hover:translate-x-1 transition-transform" />
-                                            {entry.title}
-                                        </h3>
-                                        <p className="text-slate-300 text-sm leading-relaxed pl-7">
-                                            {entry.content}
-                                        </p>
+                        {categories.map(cat => {
+                            const entries = filteredEntries.filter(e => e.category === cat);
+                            if (entries.length === 0) return null;
+                            return (
+                                <div key={cat} className="mb-8">
+                                    <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                        <MessageSquare className="w-4 h-4" />
+                                        {cat}
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {entries.map((entry, idx) => (
+                                            <div
+                                                key={idx}
+                                                className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-5 hover:bg-slate-800 transition-colors group"
+                                            >
+                                                <h4 className="text-base font-bold text-white mb-2 flex items-start gap-2">
+                                                    <ChevronRight className="w-5 h-5 text-blue-500 shrink-0 mt-0.5 group-hover:translate-x-1 transition-transform" />
+                                                    {entry.title}
+                                                </h4>
+                                                <p className="text-slate-300 text-sm leading-relaxed pl-7">
+                                                    {entry.content}
+                                                </p>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))
-                            ) : (
-                                <div className="col-span-1 md:col-span-2 text-center py-12 bg-slate-800/20 rounded-2xl border border-slate-700/50 border-dashed">
-                                    <Search className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                                    <p className="text-slate-400 text-lg">Keine passenden Anleitungen für "{searchTerm}" gefunden.</p>
-                                    <button
-                                        onClick={() => setSearchTerm('')}
-                                        className="mt-4 text-blue-400 hover:text-blue-300 font-medium text-sm transition-colors"
-                                    >
-                                        Suche zurücksetzen
-                                    </button>
                                 </div>
-                            )}
-                        </div>
+                            );
+                        })}
+
+                        {filteredEntries.length === 0 && (
+                            <div className="text-center py-12 bg-slate-800/20 rounded-2xl border border-slate-700/50 border-dashed">
+                                <Search className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+                                <p className="text-slate-400 text-lg">Keine Einträge für "{searchTerm}" gefunden.</p>
+                                <button
+                                    onClick={() => setSearchTerm('')}
+                                    className="mt-4 text-blue-400 hover:text-blue-300 font-medium text-sm transition-colors"
+                                >
+                                    Suche zurücksetzen
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
+            </section>
+
+            {/* Link to Manual */}
+            <section>
+                <Link to="/manual" className="group flex items-center justify-between bg-linear-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-2xl p-6 hover:from-indigo-100 hover:to-blue-100 transition-colors">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center shadow-md">
+                            <BookOpen className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <p className="font-bold text-slate-900 text-lg">Handbuch öffnen</p>
+                            <p className="text-slate-500 text-sm mt-0.5">Detailliertes Benutzerhandbuch mit allen Konzepten, Schritt-für-Schritt-Anleitungen und PDF-Download.</p>
+                        </div>
+                    </div>
+                    <ChevronRight className="w-6 h-6 text-indigo-400 group-hover:translate-x-1 transition-transform shrink-0" />
+                </Link>
             </section>
 
         </div>

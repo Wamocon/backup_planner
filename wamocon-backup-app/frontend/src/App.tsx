@@ -5,6 +5,7 @@ import DashboardPage from './pages/DashboardPage';
 import JobsPage from './pages/JobsPage';
 import LogsPage from './pages/LogsPage';
 import HelpPage from './pages/HelpPage';
+import ManualPage from './pages/ManualPage';
 import CalendarPage from './pages/CalendarPage';
 import ArchitecturePage from './pages/ArchitecturePage';
 import DevicesPage from './pages/DevicesPage';
@@ -26,6 +27,7 @@ function App() {
           <Route path="/architecture" element={<ArchitecturePage />} />
           <Route path="/devices" element={<DevicesPage />} />
           <Route path="/help" element={<HelpPage />} />
+          <Route path="/manual" element={<ManualPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Info } from 'lucide-react';
+import { X, Info } from '@phosphor-icons/react';
 import client from '../api/client';
 import { CronExpressionParser } from 'cron-parser';
 import { format } from 'date-fns';
@@ -97,7 +97,7 @@ export default function JobModal({ isOpen, onClose, jobToEdit, onSaveSuccess }: 
                             <p className="text-sm text-slate-500 mt-1">Konfiguriere Quellen, Ziele und den Zeitplan für die rclone Ausführung.</p>
                         </div>
                         <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 transition-colors">
-                            <X className="w-5 h-5 text-slate-400 hover:text-slate-600" />
+                            <X size={20} className="text-slate-400 hover:text-slate-600" />
                         </button>
                     </div>
 
@@ -117,7 +117,7 @@ export default function JobModal({ isOpen, onClose, jobToEdit, onSaveSuccess }: 
                             <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-2">
                                 2. Quelle & Ziele
                                 <div className="group relative inline-block">
-                                    <Info className="w-4 h-4 text-blue-400 cursor-help" />
+                                    <Info size={16} className="text-blue-400 cursor-help" />
                                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-slate-800 text-white text-xs rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all shadow-xl z-10 pointer-events-none">
                                         Diese Remotes müssen zuvor in der rclone.conf des hostenden MacStudio Servers konfiguriert worden sein.
                                     </div>
@@ -148,7 +148,7 @@ export default function JobModal({ isOpen, onClose, jobToEdit, onSaveSuccess }: 
                                     <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center justify-between">
                                         Backup-Typ
                                         <span className="group relative inline-block">
-                                            <Info className="w-4 h-4 text-slate-400 cursor-help" />
+                                            <Info size={16} className="text-slate-400 cursor-help" />
                                             <span className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-slate-800 text-white text-xs rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all shadow-xl z-10">
                                                 Vollbackup kopiert alles neu. Inkrementell (--update) kopiert nur geänderte Dateien (empfohlen für Cloud). GoBD sichert Buchhaltungsdaten mit Checksummen-Prüfung und 10 Jahren Mindest-Aufbewahrung.
                                             </span>

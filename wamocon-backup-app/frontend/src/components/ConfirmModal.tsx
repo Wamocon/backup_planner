@@ -1,4 +1,4 @@
-import { X, Trash2, Play } from 'lucide-react';
+import { X, Trash, Play } from '@phosphor-icons/react';
 
 export type ConfirmVariant = 'danger' | 'primary';
 
@@ -27,8 +27,8 @@ export default function ConfirmModal({
                     <div className="flex items-start gap-4">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isDanger ? 'bg-red-100' : 'bg-blue-100'}`}>
                             {isDanger
-                                ? <Trash2 className="w-5 h-5 text-red-600" />
-                                : <Play className="w-5 h-5 text-blue-600" />
+                                ? <Trash size={20} className="text-red-600" />
+                                : <Play size={20} className="text-blue-600" />
                             }
                         </div>
                         <div className="flex-1">
@@ -36,7 +36,7 @@ export default function ConfirmModal({
                             <p className="text-sm text-slate-600 mt-1 leading-relaxed">{message}</p>
                         </div>
                         <button onClick={onCancel} className="text-slate-400 hover:text-slate-600 transition-colors shrink-0 p-1">
-                            <X className="w-5 h-5" />
+                            <X size={20} />
                         </button>
                     </div>
                     <div className="flex justify-end gap-3 mt-6">

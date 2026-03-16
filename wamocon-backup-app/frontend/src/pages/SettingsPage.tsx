@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import client from '../api/client';
 import { useToastStore } from '../store/toast.store';
-import { Settings, Mail, Save, Send, Loader2, Eye, EyeOff } from 'lucide-react';
+import { GearSix, Envelope, FloppyDisk, PaperPlaneTilt, CircleNotch, Eye, EyeSlash } from '@phosphor-icons/react';
 
 interface SettingsState {
     smtp_host: string;
@@ -69,7 +69,7 @@ export default function SettingsPage() {
         setForm(prev => ({ ...prev, [key]: e.target.value }));
 
     if (loading) {
-        return <div className="flex justify-center items-center h-full min-h-100"><Loader2 className="w-10 h-10 animate-spin text-blue-500" /></div>;
+        return <div className="flex justify-center items-center h-full min-h-100"><CircleNotch size={40} className="animate-spin text-blue-500" /></div>;
     }
 
     return (
@@ -78,7 +78,7 @@ export default function SettingsPage() {
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-3">
                     <span className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
-                        <Settings className="w-6 h-6" />
+                        <GearSix size={24} />
                     </span>
                     Einstellungen
                 </h1>
@@ -88,7 +88,7 @@ export default function SettingsPage() {
             {/* SMTP Card */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-indigo-500" />
+                    <Envelope size={16} className="text-indigo-500" />
                     <h2 className="font-bold text-slate-800 text-sm">E-Mail-Benachrichtigungen (SMTP)</h2>
                 </div>
                 <div className="p-6 space-y-4">
@@ -138,7 +138,7 @@ export default function SettingsPage() {
                                     onClick={() => setShowPassword(v => !v)}
                                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                                 >
-                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    {showPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
                                 </button>
                             </div>
                         </div>
@@ -202,7 +202,7 @@ export default function SettingsPage() {
                         disabled={saving}
                         className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors"
                     >
-                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        {saving ? <CircleNotch size={16} className="animate-spin" /> : <FloppyDisk size={16} />}
                         Speichern
                     </button>
                     <button
@@ -211,7 +211,7 @@ export default function SettingsPage() {
                         className="flex items-center gap-2 px-4 py-2 text-sm font-semibold border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 rounded-lg transition-colors"
                         title={!form.smtp_host || !form.notify_email ? 'Bitte SMTP-Host und Empfänger ausfüllen' : undefined}
                     >
-                        {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        {testing ? <CircleNotch size={16} className="animate-spin" /> : <PaperPlaneTilt size={16} />}
                         Test-E-Mail senden
                     </button>
                 </div>

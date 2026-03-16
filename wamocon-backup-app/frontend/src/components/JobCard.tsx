@@ -1,4 +1,4 @@
-import { Play, Settings, Trash2, Clock, ShieldCheck, ExternalLink } from 'lucide-react';
+import { Play, GearSix, Trash, Clock, ShieldCheck, ArrowSquareOut } from '@phosphor-icons/react';
 import { format } from 'date-fns';
 
 interface Job {
@@ -40,15 +40,15 @@ export default function JobCard({ job, isAdmin, onRun, onEdit, onDelete }: JobCa
 
                 <div className="space-y-3 pl-2 flex-1">
                     <div className="flex items-center text-sm text-slate-600">
-                        <ExternalLink className="w-4 h-4 mr-2 text-slate-400" />
+                        <ArrowSquareOut size={16} className="mr-2 text-slate-400" />
                         <span className="truncate" title={job.source}>Von: <span className="font-medium text-slate-800">{job.source}</span></span>
                     </div>
                     <div className="flex items-center text-sm text-slate-600">
-                        <ShieldCheck className="w-4 h-4 mr-2 text-slate-400" />
+                        <ShieldCheck size={16} className="mr-2 text-slate-400" />
                         <span className="truncate" title={job.destination}>Nach: <span className="font-medium text-slate-800">{job.destination}</span></span>
                     </div>
                     <div className="flex items-center text-sm text-slate-600">
-                        <Clock className="w-4 h-4 mr-2 text-slate-400" />
+                        <Clock size={16} className="mr-2 text-slate-400" />
                         <span>Cron: <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs">{job.schedule}</code></span>
                     </div>
                 </div>
@@ -77,7 +77,7 @@ export default function JobCard({ job, isAdmin, onRun, onEdit, onDelete }: JobCa
                         className="flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-800 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition-colors"
                         title="Diesen Backup-Job jetzt manuell starten"
                     >
-                        <Play className="w-4 h-4 mr-1.5" /> Starten
+                        <Play size={16} className="mr-1.5" /> Starten
                     </button>
                     <div className="flex gap-1">
                         <button
@@ -85,14 +85,14 @@ export default function JobCard({ job, isAdmin, onRun, onEdit, onDelete }: JobCa
                             className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                             title="Plan bearbeiten"
                         >
-                            <Settings className="w-4 h-4" />
+                            <GearSix size={16} />
                         </button>
                         <button
                             onClick={() => onDelete(job.id)}
                             className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Plan löschen"
                         >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash size={16} />
                         </button>
                     </div>
                 </div>

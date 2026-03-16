@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import client from '../api/client';
 import { useAuthStore } from '../store/auth.store';
-import { Monitor, Wifi, Edit2, Save, X, HardDrive, Server, Loader2 } from 'lucide-react';
+import { Desktop, WifiHigh, PencilSimple, FloppyDisk, X, HardDrive, Desktop as Server, CircleNotch } from '@phosphor-icons/react';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -108,7 +108,7 @@ export default function DevicesPage() {
     if (loading) {
         return (
             <div className="flex justify-center items-center h-full min-h-[400px]">
-                <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
+                <CircleNotch size={40} className="animate-spin text-blue-500" />
             </div>
         );
     }
@@ -125,7 +125,7 @@ export default function DevicesPage() {
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-3">
                     <span className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
-                        <Monitor className="w-6 h-6" />
+                        <Desktop size={24} />
                     </span>
                     Geräte-Verwaltung
                 </h1>
@@ -134,7 +134,7 @@ export default function DevicesPage() {
 
             {devices.length === 0 ? (
                 <div className="bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-12 text-center text-slate-400">
-                    <Monitor className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                    <Desktop size={48} className="mx-auto mb-3 opacity-20" />
                     <p>Keine Geräte gefunden. Warte auf den ersten URBackup-Sync.</p>
                 </div>
             ) : (
@@ -147,7 +147,7 @@ export default function DevicesPage() {
                                 <div className="p-5 flex flex-wrap gap-4 items-start">
                                     <div className="flex items-center gap-3 flex-1 min-w-[200px]">
                                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${d.online ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
-                                            <Monitor className="w-5 h-5" />
+                                            <Desktop size={20} />
                                         </div>
                                         <div>
                                             <p className="font-bold text-slate-800 text-lg leading-tight">
@@ -165,18 +165,18 @@ export default function DevicesPage() {
                                     {/* Status Badges */}
                                     <div className="flex flex-wrap gap-2 items-center">
                                         <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold ${d.online ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500'}`}>
-                                            <Wifi className="w-3.5 h-3.5" />
+                                            <WifiHigh size={14} />
                                             {d.online ? 'Online' : 'Offline'}
                                         </span>
                                         {!d.file_disabled && (
                                             <span className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold ${d.file_ok ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
-                                                <HardDrive className="w-3 h-3" />
+                                                <HardDrive size={12} />
                                                 File {d.file_ok ? 'OK' : 'NOK'}
                                             </span>
                                         )}
                                         {!d.image_disabled && (
                                             <span className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold ${d.image_ok ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
-                                                <Server className="w-3 h-3" />
+                                                <Server size={12} />
                                                 Image {d.image_ok ? 'OK' : 'NOK'}
                                             </span>
                                         )}
@@ -208,7 +208,7 @@ export default function DevicesPage() {
                                             onClick={() => startEdit(d)}
                                             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors"
                                         >
-                                            <Edit2 className="w-3.5 h-3.5" /> Bearbeiten
+                                            <PencilSimple size={14} /> Bearbeiten
                                         </button>
                                     )}
                                     {saveMsg?.id === d.id && (
@@ -255,14 +255,14 @@ export default function DevicesPage() {
                                                 disabled={saving}
                                                 className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors"
                                             >
-                                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                                {saving ? <CircleNotch size={16} className="animate-spin" /> : <FloppyDisk size={16} />}
                                                 Speichern
                                             </button>
                                             <button
                                                 onClick={cancelEdit}
                                                 className="flex items-center gap-1.5 px-4 py-2 text-slate-600 border border-slate-200 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors"
                                             >
-                                                <X className="w-4 h-4" /> Abbrechen
+                                                <X size={16} /> Abbrechen
                                             </button>
                                         </div>
                                     </div>

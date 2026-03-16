@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import client from '../api/client';
 import { useAuthStore } from '../store/auth.store';
-import { Plus, Edit, Trash2, Play, Loader2, Database } from 'lucide-react';
+import { Plus, PencilSimple, Trash, Play, CircleNotch, HardDrives } from '@phosphor-icons/react';
 import JobModal from '../components/JobModal';
 import { CronExpressionParser } from 'cron-parser';
 import { format } from 'date-fns';
@@ -131,7 +131,7 @@ export default function JobsPage() {
 
             <div className="bg-white shadow-sm overflow-hidden sm:rounded-2xl border border-slate-200">
                 {loading ? (
-                    <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-blue-500" /></div>
+                    <div className="flex justify-center py-20"><CircleNotch size={40} className="animate-spin text-blue-500" /></div>
                 ) : (
                     <table className="min-w-full divide-y divide-slate-200">
                         <thead className="bg-slate-50/80 backdrop-blur-sm">
@@ -149,7 +149,7 @@ export default function JobsPage() {
                                     <td className="px-6 py-5">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                                                <Database className="w-5 h-5" />
+                                                <HardDrives size={20} />
                                             </div>
                                             <div>
                                                 <div className="text-sm font-bold text-slate-900">{job.name}</div>
@@ -183,13 +183,13 @@ export default function JobsPage() {
                                         <td className="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
                                             <div className="flex justify-end gap-2">
                                                 <button onClick={() => handleRun(job.id)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200" title="Jetzt ausführen">
-                                                    <Play className="w-4 h-4" /> Start
+                                                    <Play size={16} /> Start
                                                 </button>
                                                 <button onClick={() => handleOpenEdit(job)} className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors" title="Bearbeiten">
-                                                    <Edit className="w-4 h-4" />
+                                                    <PencilSimple size={16} />
                                                 </button>
                                                 <button onClick={() => handleDelete(job)} disabled={job.backup_type === 'gobd'} className={`p-2 rounded-lg transition-colors ${job.backup_type === 'gobd' ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'}`} title={job.backup_type === 'gobd' ? 'GoBD-Pläne können nicht gelöscht werden' : 'Löschen'}>
-                                                    <Trash2 className="w-4 h-4" />
+                                                    <Trash size={16} />
                                                 </button>
                                             </div>
                                         </td>
@@ -200,7 +200,7 @@ export default function JobsPage() {
                                 <tr>
                                     <td colSpan={isAdmin ? 5 : 4} className="px-6 py-12 text-center text-slate-500">
                                         <div className="flex flex-col items-center gap-3">
-                                            <Database className="w-12 h-12 text-slate-300" />
+                                            <HardDrives size={48} className="text-slate-300" />
                                             <p className="font-medium">Noch keine Backup-Pläne angelegt.</p>
                                             <p className="text-sm border border-slate-200 rounded-lg px-4 py-2 mt-2 bg-slate-50">Nutze den blauen Button oben rechts, um zu starten.</p>
                                         </div>

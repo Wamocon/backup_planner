@@ -11,7 +11,140 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f3f4f6;
+}
+
+/* ── Dot-grid background (light mode) ─────────────────────────── */
+.bg-dots {
+  background-color: #f8fafc;
+  background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
+  background-size: 22px 22px;
+  position: relative;
+}
+
+/* Aurora ambient spots behind the dot grid */
+.bg-dots::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 55% 40% at 15% 20%, rgba(99, 102, 241, 0.07) 0%, transparent 70%),
+    radial-gradient(ellipse 45% 35% at 85% 75%, rgba(59, 130, 246, 0.07) 0%, transparent 70%),
+    radial-gradient(ellipse 30% 30% at 60% 10%, rgba(139, 92, 246, 0.05) 0%, transparent 70%);
+}
+
+/* Main content area must stack above the pseudo-element */
+.bg-dots > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Dark mode variant ──────────────────────────────────────────── */
+.dark .bg-dots,
+.bg-dots-dark {
+  background-color: #0f172a;
+  background-image: radial-gradient(circle, #1e293b 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.dark .bg-dots::before,
+.bg-dots-dark::before {
+  background:
+    radial-gradient(ellipse 55% 40% at 15% 20%, rgba(99, 102, 241, 0.12) 0%, transparent 70%),
+    radial-gradient(ellipse 45% 35% at 85% 75%, rgba(59, 130, 246, 0.10) 0%, transparent 70%),
+    radial-gradient(ellipse 30% 30% at 60% 10%, rgba(139, 92, 246, 0.08) 0%, transparent 70%);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DARK MODE – Global surface & typography overrides
+   Single-file approach: higher specificity (.dark .class = 0-2-0)
+   beats Tailwind's base utilities (0-1-0), so no per-component edits.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* — White card / panel surfaces — */
+.dark .bg-white { background-color: rgb(30 41 59); }           /* slate-800 */
+
+/* — Neutral surface tints (card headers, row bg, table thead) — */
+.dark .bg-slate-50    { background-color: rgb(51 65 85); }     /* slate-700 */
+.dark .bg-slate-100   { background-color: rgb(51 65 85); }     /* slate-700 */
+.dark .bg-slate-200   { background-color: rgb(71 85 105); }    /* slate-600 */
+
+/* — Opacity-modifier variants used across page components — */
+.dark .bg-slate-50\/80 { background-color: rgba(51, 65, 85, 0.80); }
+.dark .bg-slate-50\/50 { background-color: rgba(51, 65, 85, 0.50); }
+.dark .bg-slate-50\/30 { background-color: rgba(51, 65, 85, 0.30); }
+
+/* — Borders & dividers — */
+.dark .border-slate-200 { border-color: rgb(51 65 85); }        /* slate-700 */
+.dark .border-slate-100 { border-color: rgb(51 65 85); }        /* slate-700 */
+.dark .divide-slate-100 > * + * { border-color: rgb(51 65 85); }
+
+/* — Gray text: dark shades become light in dark mode — */
+.dark .text-slate-900 { color: rgb(248 250 252); }              /* slate-50  */
+.dark .text-slate-800 { color: rgb(241 245 249); }              /* slate-100 */
+.dark .text-slate-700 { color: rgb(226 232 240); }              /* slate-200 */
+.dark .text-slate-600 { color: rgb(203 213 225); }              /* slate-300 */
+
+/* — Gradient title text: rewrite CSS vars so dark-on-dark is legible — */
+.dark .from-slate-900 { --tw-gradient-from: #f1f5f9 !important; }
+.dark .to-slate-600   { --tw-gradient-to:   #94a3b8 !important; }
+
+/* — Colored status badge / banner backgrounds → subtle tint — */
+.dark .bg-indigo-50,
+.dark .bg-indigo-50\/50  { background-color: rgba(99, 102, 241, 0.12); }
+.dark .bg-teal-50        { background-color: rgba(20, 184, 166, 0.12); }
+.dark .bg-emerald-50     { background-color: rgba(16, 185, 129, 0.12); }
+.dark .bg-amber-50       { background-color: rgba(245, 158, 11,  0.12); }
+.dark .bg-red-50         { background-color: rgba(239, 68,  68,  0.12); }
+.dark .bg-blue-50        { background-color: rgba(59,  130, 246, 0.12); }
+.dark .bg-purple-50      { background-color: rgba(168, 85,  247, 0.12); }
+
+/* — Colored badge borders — */
+.dark .border-indigo-200  { border-color: rgba(99,  102, 241, 0.35); }
+.dark .border-teal-200    { border-color: rgba(20,  184, 166, 0.35); }
+.dark .border-emerald-200 { border-color: rgba(16,  185, 129, 0.35); }
+.dark .border-amber-200   { border-color: rgba(245, 158, 11,  0.35); }
+.dark .border-red-200     { border-color: rgba(239, 68,  68,  0.35); }
+.dark .border-blue-200    { border-color: rgba(59,  130, 246, 0.35); }
+
+/* — Dark badge text → lighter counterpart — */
+.dark .text-indigo-900 { color: rgb(199 210 254); }             /* indigo-200 */
+.dark .text-indigo-800 { color: rgb(199 210 254); }
+.dark .text-indigo-700 { color: rgb(165 180 252); }             /* indigo-300 */
+.dark .text-teal-800   { color: rgb(153 246 228); }             /* teal-200   */
+.dark .text-teal-700   { color: rgb(94  234 212); }             /* teal-300   */
+
+/* — Row / item hover states — */
+.dark .hover\:bg-slate-50:hover       { background-color: rgba(51, 65, 85, 0.50); }
+.dark .hover\:bg-slate-50\/50:hover   { background-color: rgba(51, 65, 85, 0.30); }
+.dark .hover\:bg-white:hover          { background-color: rgba(51, 65, 85, 0.80); }
+
+/* — Form inputs / selects / textareas — */
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+.dark select,
+.dark textarea {
+  background-color: rgb(51 65 85);                              /* slate-700 */
+  border-color:     rgb(71 85 105);                             /* slate-600 */
+  color:            rgb(248 250 252);                           /* slate-50  */
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: rgb(100 116 139);                                      /* slate-500 */
+}
+
+/* — Inline code / monospace snippets — */
+.dark code {
+  background-color: rgb(15 23 42);                              /* slate-900 */
+  color:            rgb(226 232 240);                           /* slate-200 */
+}
+
+/* ── Glassmorphism active nav item ──────────────────────────────── */
+.active-nav-item {
+  background: rgba(99, 102, 241, 0.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(99, 102, 241, 0.2);
 }
 
 @media print {
@@ -40,6 +173,12 @@ body {
   body {
     background: white !important;
     color: black !important;
+  }
+
+  .bg-dots,
+  .bg-dots::before {
+    background: white !important;
+    background-image: none !important;
   }
 
   /* Avoid orphaned headings */

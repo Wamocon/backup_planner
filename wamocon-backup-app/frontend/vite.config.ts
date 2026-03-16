@@ -9,6 +9,7 @@ export default defineConfig({
     react()
   ],
   server: {
+    // Dev proxy: forwards /api calls to local backend
     proxy: {
       '/api': 'http://localhost:3001'
     }

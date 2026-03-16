@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const db = require('../../database/db');
+const pool = require('../../database/db');
 const rcloneService = require('./rclone.service');
 
 const scheduledJobs = new Map(); // job_id -> cron instance
@@ -8,7 +8,6 @@ function scheduleJob(job) {
     if (!job.schedule || job.is_active !== 1) return;
 
     if (scheduledJobs.has(job.id)) {
-        // Destroy existing before creating new
         const prevCron = scheduledJobs.get(job.id);
         prevCron.stop();
         scheduledJobs.delete(job.id);
@@ -20,7 +19,7 @@ function scheduleJob(job) {
             await rcloneService.runBackupJob(job, 'schedule');
         }, {
             scheduled: true,
-            timezone: "Europe/Berlin" // Assuming general German context from prompt
+            timezone: "Europe/Berlin"
         });
 
         scheduledJobs.set(job.id, task);
@@ -38,14 +37,13 @@ function unscheduleJob(jobId) {
     }
 }
 
-function initializeScheduler() {
-    // Stop all just in case
-    for (const [jobId, task] of scheduledJobs.entries()) {
+async function initializeScheduler() {
+    for (const [, task] of scheduledJobs.entries()) {
         task.stop();
     }
     scheduledJobs.clear();
 
-    const activeJobs = db.prepare('SELECT * FROM backup_jobs WHERE is_active = 1').all();
+    const { rows: activeJobs } = await pool.query('SELECT * FROM backup_jobs WHERE is_active = 1');
     console.log(`[Cron] Initializing ${activeJobs.length} active jobs...`);
     activeJobs.forEach(job => scheduleJob(job));
 }
@@ -55,3 +53,4 @@ module.exports = {
     unscheduleJob,
     initializeScheduler
 };
+

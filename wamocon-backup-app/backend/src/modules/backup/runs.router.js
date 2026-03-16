@@ -1,60 +1,58 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../../database/db');
+const pool = require('../../database/db');
 const fs = require('fs');
 const { requireAuth } = require('../../core/middleware/auth.middleware');
 
 router.use(requireAuth);
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
     const limit = parseInt(req.query.limit) || 50;
     const offset = parseInt(req.query.offset) || 0;
-    const jobId = req.query.job_id;
+    const jobId = req.query.job_id ? parseInt(req.query.job_id) : null;
 
-    let query = 'SELECT * FROM backup_runs';
-    const params = [];
+    let query;
+    let params;
 
     if (jobId) {
-        query += ' WHERE job_id = ?';
-        params.push(jobId);
+        query = 'SELECT * FROM backup_runs WHERE job_id = $1 ORDER BY started_at DESC LIMIT $2 OFFSET $3';
+        params = [jobId, limit, offset];
+    } else {
+        query = 'SELECT * FROM backup_runs ORDER BY started_at DESC LIMIT $1 OFFSET $2';
+        params = [limit, offset];
     }
 
-    query += ' ORDER BY started_at DESC LIMIT ? OFFSET ?';
-    params.push(limit, offset);
-
-    const runs = db.prepare(query).all(...params);
-    res.json(runs);
+    const { rows } = await pool.query(query, params);
+    res.json(rows);
 });
 
-router.get('/recent', (req, res) => {
+router.get('/recent', async (req, res) => {
     const days = parseInt(req.query.days) || 7;
-    // SQLite syntax for days subtraction
-    const runs = db.prepare(`
-        SELECT r.*, j.name as job_name 
+    const { rows } = await pool.query(`
+        SELECT r.*, j.name as job_name
         FROM backup_runs r
         LEFT JOIN backup_jobs j ON r.job_id = j.id
-        WHERE r.started_at >= date('now', '-' || ? || ' days')
+        WHERE r.started_at >= NOW() - ($1 || ' days')::INTERVAL
         ORDER BY r.started_at ASC
-    `).all(days);
-
-    res.json(runs);
+    `, [days]);
+    res.json(rows);
 });
 
-router.get('/:id', (req, res) => {
-    const run = db.prepare('SELECT * FROM backup_runs WHERE id = ?').get(req.params.id);
-    if (!run) return res.status(404).json({ error: 'Run not found' });
-    res.json(run);
+router.get('/:id', async (req, res) => {
+    const { rows } = await pool.query('SELECT * FROM backup_runs WHERE id = $1', [req.params.id]);
+    if (!rows[0]) return res.status(404).json({ error: 'Run not found' });
+    res.json(rows[0]);
 });
 
-router.get('/:id/log', (req, res) => {
-    const run = db.prepare('SELECT log_file_path FROM backup_runs WHERE id = ?').get(req.params.id);
-    if (!run) return res.status(404).json({ error: 'Run not found' });
+router.get('/:id/log', async (req, res) => {
+    const { rows } = await pool.query('SELECT log_file_path FROM backup_runs WHERE id = $1', [req.params.id]);
+    if (!rows[0]) return res.status(404).json({ error: 'Run not found' });
 
-    if (!run.log_file_path || !fs.existsSync(run.log_file_path)) {
+    if (!rows[0].log_file_path || !fs.existsSync(rows[0].log_file_path)) {
         return res.json({ content: 'No log file found.' });
     }
 
-    const content = fs.readFileSync(run.log_file_path, 'utf-8');
+    const content = fs.readFileSync(rows[0].log_file_path, 'utf-8');
     res.json({ content });
 });
 

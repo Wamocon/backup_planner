@@ -1,15 +1,16 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const db = require('../../database/db');
+const pool = require('../../database/db');
 
-function loginUser(username, password) {
-    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+async function loginUser(username, password) {
+    const { rows } = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+    const user = rows[0];
 
     if (!user) {
         throw new Error('User not found');
     }
 
-    const isValid = bcrypt.compareSync(password, user.password_hash);
+    const isValid = await bcrypt.compare(password, user.password_hash);
 
     if (!isValid) {
         throw new Error('Invalid credentials');
@@ -26,9 +27,12 @@ function loginUser(username, password) {
     return { token, user: payload };
 }
 
-function getUserById(id) {
-    const user = db.prepare('SELECT id, username, role, email, created_at FROM users WHERE id = ?').get(id);
-    return user;
+async function getUserById(id) {
+    const { rows } = await pool.query(
+        'SELECT id, username, role, email, created_at FROM users WHERE id = $1',
+        [id]
+    );
+    return rows[0];
 }
 
 module.exports = { loginUser, getUserById };

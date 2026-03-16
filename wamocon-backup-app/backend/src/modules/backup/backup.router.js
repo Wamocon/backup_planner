@@ -8,38 +8,38 @@ const { requireAdmin } = require('../../core/middleware/role.middleware');
 // All endpoints require at least auth
 router.use(requireAuth);
 
-router.get('/', (req, res) => {
-    const jobs = backupService.getAllJobs();
+router.get('/', async (req, res) => {
+    const jobs = await backupService.getAllJobs();
     res.json(jobs);
 });
 
-router.get('/:id', (req, res) => {
-    const job = backupService.getJobById(req.params.id);
+router.get('/:id', async (req, res) => {
+    const job = await backupService.getJobById(req.params.id);
     if (!job) return res.status(404).json({ error: 'Job not found' });
     res.json(job);
 });
 
-router.post('/', requireAdmin, (req, res) => {
+router.post('/', requireAdmin, async (req, res) => {
     try {
-        const newJob = backupService.createJob(req.body, req.user.id);
+        const newJob = await backupService.createJob(req.body, req.user.id);
         res.status(201).json(newJob);
     } catch (err) {
         res.status(400).json({ error: 'Failed to create job', details: err.message });
     }
 });
 
-router.put('/:id', requireAdmin, (req, res) => {
+router.put('/:id', requireAdmin, async (req, res) => {
     try {
-        const updated = backupService.updateJob(req.params.id, req.body);
+        const updated = await backupService.updateJob(req.params.id, req.body);
         res.json(updated);
     } catch (err) {
         res.status(400).json({ error: 'Failed to update job', details: err.message });
     }
 });
 
-router.delete('/:id', requireAdmin, (req, res) => {
+router.delete('/:id', requireAdmin, async (req, res) => {
     try {
-        const success = backupService.deleteJob(req.params.id);
+        const success = await backupService.deleteJob(req.params.id);
         if (success) {
             res.status(204).send();
         } else {

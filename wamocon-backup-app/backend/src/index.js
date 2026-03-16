@@ -1,6 +1,9 @@
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first'); // Force IPv4 for Supabase connections on Windows
+
 const express = require('express');
 const cors = require('cors');
-require('express-async-errors'); // Helps with async error handling without try/catch wrapper
+require('express-async-errors');
 require('dotenv').config();
 
 const authRouter = require('./core/auth/auth.router');
@@ -14,10 +17,22 @@ const settingsRouter = require('./modules/settings/settings.router');
 
 const app = express();
 
-app.use(cors());
+// CORS: allow configured origins or fall back to dev default
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+    : ['http://localhost:5173'];
+
+app.use(cors({
+    origin: (origin, callback) => {
+        // Allow requests with no origin (e.g. mobile apps, Postman)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        callback(new Error(`CORS: origin ${origin} not allowed`));
+    },
+    credentials: true
+}));
 app.use(express.json());
 
-// API Routes
 app.use('/api/auth', authRouter);
 app.use('/api/jobs', backupRouter);
 app.use('/api/runs', runsRouter);
@@ -27,7 +42,6 @@ app.use('/api/devices', devicesRouter);
 app.use('/api/macstudio', macstudioRouter);
 app.use('/api/settings', settingsRouter);
 
-// Global Error Handler
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({ error: 'Internal Server Error', message: err.message });
@@ -35,14 +49,25 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3001;
 
-// Initialize Cron Scheduler (rclone backup jobs)
-const scheduler = require('./modules/backup/scheduler.service');
-scheduler.initializeScheduler();
+async function start() {
+    // Initialize DB (apply schema + seed) before accepting requests
+    const db = require('./database/db');
+    await db.initialize();
+    console.log('[DB] Connected and ready.');
 
-// Initialize URBackup Sync Scheduler
-const urbackupSync = require('./modules/urbackup/urbackup.sync.service');
-urbackupSync.initializeSyncScheduler();
+    const scheduler = require('./modules/backup/scheduler.service');
+    await scheduler.initializeScheduler();
 
-app.listen(PORT, () => {
-    console.log(`Backend server running on port ${PORT}`);
+    const urbackupSync = require('./modules/urbackup/urbackup.sync.service');
+    urbackupSync.initializeSyncScheduler();
+
+    app.listen(PORT, () => {
+        console.log(`Backend server running on port ${PORT}`);
+    });
+}
+
+start().catch(err => {
+    console.error('Failed to start server:', err.message);
+    process.exit(1);
 });
+

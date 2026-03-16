@@ -1,7 +1,7 @@
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
-const db = require('../../database/db');
+const pool = require('../../database/db');
 const emailService = require('../../core/email/email.service');
 
 // Map of runId -> childProcess to keep track of running tasks for stopping
@@ -11,7 +11,6 @@ async function runBackupJob(job, triggeredBy = 'schedule') {
     const rclonePath = process.env.RCLONE_PATH || 'rclone';
     const logDir = process.env.RCLONE_LOG_DIR || path.join(__dirname, '../../../../logs');
 
-    // Ensure logs directory exists
     if (!fs.existsSync(logDir)) {
         fs.mkdirSync(logDir, { recursive: true });
     }
@@ -19,15 +18,13 @@ async function runBackupJob(job, triggeredBy = 'schedule') {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const logFile = path.join(logDir, `job_${job.id}_${timestamp}.log`);
 
-    // Create a new run entry
-    const insertRun = db.prepare(`
-        INSERT INTO backup_runs (job_id, started_at, status, log_file_path, triggered_by)
-        VALUES (?, CURRENT_TIMESTAMP, 'running', ?, ?)
-    `);
-    const runId = insertRun.run(job.id, logFile, triggeredBy).lastInsertRowid;
+    const { rows } = await pool.query(
+        `INSERT INTO backup_runs (job_id, started_at, status, log_file_path, triggered_by)
+         VALUES ($1, CURRENT_TIMESTAMP, 'running', $2, $3) RETURNING id`,
+        [job.id, logFile, triggeredBy]
+    );
+    const runId = rows[0].id;
 
-    // Build rclone args
-    // Simplified args: rclone copy SOURCE DEST --progress --stats 10s --log-file LOGFILE
     let dests = [];
     try {
         dests = JSON.parse(job.destination);
@@ -36,14 +33,12 @@ async function runBackupJob(job, triggeredBy = 'schedule') {
         dests = [job.destination];
     }
 
-    // For simplicity MVP we will loop dests sequentially if multiple, or spawn multiple.
-    // Let's spawn sequentially for now. We wrap it in an async IIFE to not block returning the runId immediately.
     (async () => {
         let finalExitCode = 0;
         let errorMessage = null;
 
         for (const dest of dests) {
-            if (finalExitCode !== 0) break; // stop if one fails
+            if (finalExitCode !== 0) break;
 
             await new Promise((resolve) => {
                 const args = ['copy', job.source, dest, '--progress', '--transfers=4', `--log-file=${logFile}`, '--log-level', 'INFO', '--stats', '60s'];
@@ -51,14 +46,11 @@ async function runBackupJob(job, triggeredBy = 'schedule') {
                 if (job.backup_type === 'incremental' || job.backup_type === 'differential') {
                     args.push('--update');
                 }
-
-                // GoBD: Vollständige Kopie + Checksummen-Prüfung für Datenintegrität
                 if (job.backup_type === 'gobd') {
                     args.push('--checksum');
                 }
 
                 const rcloneProcess = spawn(rclonePath, args);
-
                 runningProcesses.set(runId, rcloneProcess);
 
                 rcloneProcess.on('close', (code) => {
@@ -81,13 +73,13 @@ async function runBackupJob(job, triggeredBy = 'schedule') {
 
         const status = finalExitCode === 0 ? 'success' : 'failed';
 
-        db.prepare(`
-            UPDATE backup_runs 
-            SET status = ?, finished_at = CURRENT_TIMESTAMP, exit_code = ?, error_message = ?
-            WHERE id = ?
-        `).run(status, finalExitCode, errorMessage, runId);
+        await pool.query(
+            `UPDATE backup_runs SET status = $1, finished_at = CURRENT_TIMESTAMP, exit_code = $2, error_message = $3 WHERE id = $4`,
+            [status, finalExitCode, errorMessage, runId]
+        );
 
-        const currentRun = db.prepare('SELECT * FROM backup_runs WHERE id = ?').get(runId);
+        const { rows: runRows } = await pool.query('SELECT * FROM backup_runs WHERE id = $1', [runId]);
+        const currentRun = runRows[0];
         if (status === 'success') {
             emailService.sendSuccessNotification(job, currentRun);
         } else {
@@ -104,11 +96,10 @@ async function stopBackupJob(runId) {
         process.kill('SIGTERM');
         runningProcesses.delete(runId);
 
-        db.prepare(`
-            UPDATE backup_runs 
-            SET status = 'stopped', finished_at = CURRENT_TIMESTAMP, error_message = 'Stopped manually'
-            WHERE id = ?
-        `).run(runId);
+        await pool.query(
+            `UPDATE backup_runs SET status = 'stopped', finished_at = CURRENT_TIMESTAMP, error_message = 'Stopped manually' WHERE id = $1`,
+            [runId]
+        );
 
         return true;
     }
@@ -142,3 +133,4 @@ module.exports = {
     stopBackupJob,
     checkRcloneHealth
 };
+

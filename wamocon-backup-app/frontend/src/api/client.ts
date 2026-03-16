@@ -1,8 +1,10 @@
 import axios from 'axios';
 
-const client = axios.create({
-    baseURL: '/api'
-});
+// In development: Vite proxies /api → localhost:3001
+// In production:  VITE_API_URL points to the backend (e.g. via Cloudflare Tunnel)
+const baseURL = import.meta.env.VITE_API_URL ?? '/api';
+
+const client = axios.create({ baseURL });
 
 client.interceptors.request.use(
     (config) => {

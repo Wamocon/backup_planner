@@ -1,74 +1,76 @@
-const Database = require('better-sqlite3');
+const { Pool } = require('pg');
+const dns = require('dns').promises;
+const bcrypt = require('bcrypt');
 const path = require('path');
 const fs = require('fs');
-const bcrypt = require('bcrypt');
 
-const dbPath = process.env.DB_PATH || path.join(__dirname, '../../../data/wamocon.db');
+let pool;
 
-const dataDir = path.dirname(dbPath);
-if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
+async function createPool() {
+    const connStr = process.env.DATABASE_URL;
+    if (!connStr) throw new Error('DATABASE_URL is not set in environment');
+
+    const url = new URL(connStr);
+
+    // Resolve hostname to IPv4 to avoid EACCES on Windows with IPv6
+    let host = url.hostname;
+    try {
+        const addresses = await dns.resolve4(url.hostname);
+        if (addresses.length) host = addresses[0];
+    } catch (_) {
+        // Fall back to original hostname
+    }
+
+    return new Pool({
+        host,
+        port: parseInt(url.port) || 5432,
+        user: decodeURIComponent(url.username),
+        password: decodeURIComponent(url.password),
+        database: url.pathname.slice(1),
+        ssl: {
+            rejectUnauthorized: false,
+            servername: url.hostname  // SNI: required for Supabase SSL cert
+        }
+    });
 }
 
-const db = new Database(dbPath);
-db.pragma('journal_mode = WAL');
+async function initialize() {
+    pool = await createPool();
 
-const schemaPath = path.join(__dirname, 'schema.sql');
-if (fs.existsSync(schemaPath)) {
-    const schema = fs.readFileSync(schemaPath, 'utf-8');
-    db.exec(schema);
-}
+    // Apply schema (CREATE TABLE IF NOT EXISTS — idempotent)
+    const schemaPath = path.join(__dirname, 'schema.sql');
+    if (fs.existsSync(schemaPath)) {
+        const schema = fs.readFileSync(schemaPath, 'utf-8');
+        await pool.query(schema);
+        console.log('[DB] Schema applied.');
+    }
 
-// Migration: Add 'gobd' to backup_type CHECK constraint
-// SQLite cannot ALTER CHECK constraints, so we recreate the table if needed
-try {
-    // Test if 'gobd' is already accepted
-    const testStmt = db.prepare(`
-        INSERT INTO backup_jobs (name, source, destination, backup_type, schedule, created_by)
-        VALUES ('__migration_test__', 'test:', 'test:', 'gobd', '0 0 * * *', NULL)
-    `);
-    const testResult = testStmt.run();
-    db.prepare('DELETE FROM backup_jobs WHERE id = ?').run(testResult.lastInsertRowid);
-} catch (e) {
-    // 'gobd' not accepted yet - recreate table with updated constraint
-    console.log('[Migration] Updating backup_jobs table to support gobd backup type...');
-    db.pragma('foreign_keys = OFF');
-    db.exec(`
-        DROP TABLE IF EXISTS backup_jobs_new;
-        CREATE TABLE backup_jobs_new (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            source TEXT NOT NULL,
-            destination TEXT NOT NULL,
-            backup_type TEXT NOT NULL CHECK(backup_type IN ('full', 'incremental', 'differential', 'gobd')),
-            schedule TEXT NOT NULL,
-            retention_days INTEGER DEFAULT 90,
-            is_active INTEGER DEFAULT 1,
-            created_by INTEGER REFERENCES users(id),
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    // Seed default users if table is empty
+    const { rows } = await pool.query('SELECT COUNT(*) AS count FROM users');
+    if (parseInt(rows[0].count) === 0) {
+        const adminHash = await bcrypt.hash('admin123', 10);
+        const guestHash = await bcrypt.hash('guest123', 10);
+        await pool.query(
+            'INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3)',
+            ['admin', adminHash, 'admin']
         );
-        INSERT INTO backup_jobs_new SELECT * FROM backup_jobs;
-        DROP TABLE backup_jobs;
-        ALTER TABLE backup_jobs_new RENAME TO backup_jobs;
-    `);
-    db.pragma('foreign_keys = ON');
-    console.log('[Migration] backup_jobs table updated successfully.');
+        await pool.query(
+            'INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3)',
+            ['guest', guestHash, 'guest']
+        );
+        console.log('[DB] Seeded initial users: admin & guest');
+    }
 }
 
-const usersCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
-if (usersCount === 0) {
-    const adminPassword = bcrypt.hashSync('admin123', 10);
-    const guestPassword = bcrypt.hashSync('guest123', 10);
+// Proxy object: lets all modules call pool.query() before initialize() finishes
+// (queries will queue until the pool is ready)
+const poolProxy = new Proxy({ initialize }, {
+    get(target, prop) {
+        // Expose initialize() directly without needing pool
+        if (prop === 'initialize') return target.initialize;
+        if (!pool) throw new Error('[DB] pool.query() called before initialize() completed');
+        return typeof pool[prop] === 'function' ? pool[prop].bind(pool) : pool[prop];
+    }
+});
 
-    const insertUser = db.prepare(`
-    INSERT INTO users (username, password_hash, role) 
-    VALUES (?, ?, ?)
-  `);
-
-    insertUser.run('admin', adminPassword, 'admin');
-    insertUser.run('guest', guestPassword, 'guest');
-    console.log('Seeded initial users: admin & guest');
-}
-
-module.exports = db;
+module.exports = poolProxy;

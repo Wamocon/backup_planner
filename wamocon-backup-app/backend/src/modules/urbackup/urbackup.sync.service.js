@@ -1,28 +1,21 @@
-const cron = require('node-cron');
-const db = require('../../database/db');
+﻿const cron = require('node-cron');
+const pool = require('../../database/db');
 const urbackupService = require('./urbackup.service');
 
-// Alle 15 Minuten synchronisieren
 const SYNC_SCHEDULE = process.env.URBACKUP_SYNC_SCHEDULE || '*/15 * * * *';
 
 let syncTask = null;
 let lastSyncAt = null;
 let lastSyncError = null;
 
-/**
- * Helper: Unix-Timestamp (Sekunden) in ISO-String für SQLite
- */
 function toIso(ts) {
     if (!ts) return null;
-    if (typeof ts === 'string' && ts.includes('-')) return ts; // already ISO
+    if (typeof ts === 'string' && ts.includes('-')) return ts;
     const n = Number(ts);
     if (!n || n <= 0) return null;
     return new Date(n * 1000).toISOString();
 }
 
-/**
- * Hauptsynchronisierung: Clients + Backup-History vom URBackup-Server in SQLite cachen
- */
 async function runSync() {
     console.log('[URBackup Sync] Starting synchronization...');
     try {
@@ -34,85 +27,66 @@ async function runSync() {
             return;
         }
 
-        const upsertClient = db.prepare(`
-            INSERT INTO urbackup_clients (id, name, online, last_file_backup, last_image_backup,
-                file_ok, image_ok, file_disabled, image_disabled, client_version, synced_at)
-            VALUES (@id, @name, @online, @last_file_backup, @last_image_backup,
-                @file_ok, @image_ok, @file_disabled, @image_disabled, @client_version, @synced_at)
-            ON CONFLICT(id) DO UPDATE SET
-                name            = excluded.name,
-                online          = excluded.online,
-                last_file_backup  = excluded.last_file_backup,
-                last_image_backup = excluded.last_image_backup,
-                file_ok         = excluded.file_ok,
-                image_ok        = excluded.image_ok,
-                file_disabled   = excluded.file_disabled,
-                image_disabled  = excluded.image_disabled,
-                client_version  = excluded.client_version,
-                synced_at       = excluded.synced_at
-        `);
-
-        const insertHistory = db.prepare(`
-            INSERT OR IGNORE INTO urbackup_backup_history
-                (urbackup_id, client_id, client_name, backup_type, backup_time,
-                 size_bytes, duration_sec, incremental, letter, status, synced_at)
-            VALUES
-                (@urbackup_id, @client_id, @client_name, @backup_type, @backup_time,
-                 @size_bytes, @duration_sec, @incremental, @letter, @status, @synced_at)
-        `);
-
         const syncedAt = new Date().toISOString();
 
         for (const c of clients) {
-            upsertClient.run({
-                id: c.id,
-                name: c.name,
-                online: c.online ? 1 : 0,
-                last_file_backup: toIso(c.lastbackup),
-                last_image_backup: toIso(c.lastbackup_image),
-                file_ok: c.file_ok ? 1 : 0,
-                image_ok: c.image_ok ? 1 : 0,
-                file_disabled: c.file_disabled ? 1 : 0,
-                image_disabled: c.image_disabled ? 1 : 0,
-                client_version: c.client_version || null,
-                synced_at: syncedAt
-            });
+            await pool.query(
+                `INSERT INTO urbackup_clients (id, name, online, last_file_backup, last_image_backup,
+                    file_ok, image_ok, file_disabled, image_disabled, client_version, synced_at)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                 ON CONFLICT(id) DO UPDATE SET
+                    name              = EXCLUDED.name,
+                    online            = EXCLUDED.online,
+                    last_file_backup  = EXCLUDED.last_file_backup,
+                    last_image_backup = EXCLUDED.last_image_backup,
+                    file_ok           = EXCLUDED.file_ok,
+                    image_ok          = EXCLUDED.image_ok,
+                    file_disabled     = EXCLUDED.file_disabled,
+                    image_disabled    = EXCLUDED.image_disabled,
+                    client_version    = EXCLUDED.client_version,
+                    synced_at         = EXCLUDED.synced_at`,
+                [
+                    c.id, c.name, c.online ? 1 : 0,
+                    toIso(c.lastbackup), toIso(c.lastbackup_image),
+                    c.file_ok ? 1 : 0, c.image_ok ? 1 : 0,
+                    c.file_disabled ? 1 : 0, c.image_disabled ? 1 : 0,
+                    c.client_version || null, syncedAt
+                ]
+            );
 
             try {
                 const backupsData = await urbackupService.getClientBackups(c.id);
 
-                const fileBackups = backupsData?.file || [];
-                for (const b of fileBackups) {
-                    insertHistory.run({
-                        urbackup_id: b.id || null,
-                        client_id: c.id,
-                        client_name: c.name,
-                        backup_type: 'file',
-                        backup_time: toIso(b.backuptime),
-                        size_bytes: b.size_bytes || null,
-                        duration_sec: b.duration || null,
-                        incremental: b.incremental ? 1 : 0,
-                        letter: null,
-                        status: b.complete ? 'ok' : 'partial',
-                        synced_at: syncedAt
-                    });
+                for (const b of (backupsData?.file || [])) {
+                    await pool.query(
+                        `INSERT INTO urbackup_backup_history
+                            (urbackup_id, client_id, client_name, backup_type, backup_time,
+                             size_bytes, duration_sec, incremental, letter, status, synced_at)
+                         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+                         ON CONFLICT (client_id, backup_type, backup_time) DO NOTHING`,
+                        [
+                            b.id || null, c.id, c.name, 'file', toIso(b.backuptime),
+                            b.size_bytes || null, b.duration || null,
+                            b.incremental ? 1 : 0, null,
+                            b.complete ? 'ok' : 'partial', syncedAt
+                        ]
+                    );
                 }
 
-                const imageBackups = backupsData?.image || [];
-                for (const b of imageBackups) {
-                    insertHistory.run({
-                        urbackup_id: b.id || null,
-                        client_id: c.id,
-                        client_name: c.name,
-                        backup_type: 'image',
-                        backup_time: toIso(b.backuptime),
-                        size_bytes: b.size_bytes || null,
-                        duration_sec: b.duration || null,
-                        incremental: b.incremental ? 1 : 0,
-                        letter: b.letter || null,
-                        status: b.complete ? 'ok' : 'partial',
-                        synced_at: syncedAt
-                    });
+                for (const b of (backupsData?.image || [])) {
+                    await pool.query(
+                        `INSERT INTO urbackup_backup_history
+                            (urbackup_id, client_id, client_name, backup_type, backup_time,
+                             size_bytes, duration_sec, incremental, letter, status, synced_at)
+                         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+                         ON CONFLICT (client_id, backup_type, backup_time) DO NOTHING`,
+                        [
+                            b.id || null, c.id, c.name, 'image', toIso(b.backuptime),
+                            b.size_bytes || null, b.duration || null,
+                            b.incremental ? 1 : 0, b.letter || null,
+                            b.complete ? 'ok' : 'partial', syncedAt
+                        ]
+                    );
                 }
             } catch (histErr) {
                 console.warn(`[URBackup Sync] Could not fetch backup history for client "${c.name}":`, histErr.message);
@@ -149,7 +123,6 @@ function initializeSyncScheduler() {
     });
 
     console.log(`[URBackup Sync] Scheduler initialized (${SYNC_SCHEDULE}). Running initial sync...`);
-    // Sofortiger erster Sync beim Start (nicht blockierend)
     runSync().catch(err => console.error('[URBackup Sync] Initial sync error:', err.message));
 }
 

@@ -1,15 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const nodemailer = require('nodemailer');
-const db = require('../../database/db');
+const pool = require('../../database/db');
 const { requireAuth } = require('../../core/middleware/auth.middleware');
 const { requireAdmin } = require('../../core/middleware/role.middleware');
 
 router.use(requireAuth, requireAdmin);
 
 // GET /api/settings — return all config entries as key-value object
-router.get('/', (req, res) => {
-    const rows = db.prepare('SELECT key, value FROM config').all();
+router.get('/', async (req, res) => {
+    const { rows } = await pool.query('SELECT key, value FROM config');
     const settings = {};
     for (const row of rows) {
         settings[row.key] = row.value;
@@ -18,26 +18,24 @@ router.get('/', (req, res) => {
 });
 
 // PUT /api/settings — upsert multiple config entries
-router.put('/', (req, res) => {
+router.put('/', async (req, res) => {
     const input = req.body;
     if (typeof input !== 'object' || Array.isArray(input)) {
         return res.status(400).json({ error: 'Body must be a key-value object' });
     }
-    const stmt = db.prepare(
-        'INSERT OR REPLACE INTO config (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)'
-    );
-    const upsertAll = db.transaction((entries) => {
-        for (const [key, value] of entries) {
-            stmt.run(key, String(value ?? ''));
-        }
-    });
-    upsertAll(Object.entries(input));
+    for (const [key, value] of Object.entries(input)) {
+        await pool.query(
+            `INSERT INTO config (key, value, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP)
+             ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP`,
+            [key, String(value ?? '')]
+        );
+    }
     res.json({ ok: true });
 });
 
 // POST /api/settings/test-email — send a test e-mail using current settings
 router.post('/test-email', async (req, res) => {
-    const rows = db.prepare('SELECT key, value FROM config').all();
+    const { rows } = await pool.query('SELECT key, value FROM config');
     const cfg = {};
     for (const row of rows) cfg[row.key] = row.value;
 

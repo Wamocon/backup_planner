@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Database } from 'lucide-react';
+import { ShieldCheck } from '@phosphor-icons/react';
 
 export default function LoginPage() {
     const [username, setUsername] = useState('');
@@ -27,7 +27,7 @@ export default function LoginPage() {
         <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="flex justify-center flex-col items-center">
-                    <Database className="h-12 w-12 text-blue-600" />
+                    <ShieldCheck size={48} weight="duotone" className="text-blue-600" />
                     <h2 className="mt-4 text-center text-3xl font-extrabold text-gray-900">
                         WAMOCON Backup
                     </h2>

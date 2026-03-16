@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { LifeBuoy, Info, BookOpen, Search, ChevronRight, MessageSquare, AlertTriangle } from 'lucide-react';
+import { Lifebuoy, Info, BookOpenText, MagnifyingGlass, CaretRight, ChatCircleText, Warning } from '@phosphor-icons/react';
 
 export default function HelpPage() {
     const [searchTerm, setSearchTerm] = useState('');
@@ -85,14 +85,14 @@ export default function HelpPage() {
             {/* Header */}
             <div>
                 <h1 className="text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-3">
-                    <LifeBuoy className="w-8 h-8 text-blue-500" />
+                    <Lifebuoy size={32} className="text-blue-500" />
                     Hilfe & Support
                 </h1>
                 <p className="mt-3 text-slate-500 text-lg leading-relaxed">
                     Schnelle Antworten auf häufige Fragen zur App-Bedienung sowie Lösungen für bekannte Probleme.
                     Für tiefergehende Erklärungen zu Backup-Konzepten und Systemaufbau,{' '}
                     <Link to="/manual" className="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-1">
-                        <BookOpen className="w-4 h-4" />lies das Handbuch
+                        <BookOpenText size={16} />lies das Handbuch
                     </Link>.
                 </p>
             </div>
@@ -100,13 +100,13 @@ export default function HelpPage() {
             {/* Quick FAQ Cards */}
             <section>
                 <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-                    <Info className="w-5 h-5 text-indigo-500" />
+                    <Info size={20} className="text-indigo-500" />
                     Häufige Fragen
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                         <h4 className="font-bold text-slate-800 mb-2 flex items-start gap-2">
-                            <Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+                            <Info size={20} className="text-blue-500 shrink-0 mt-0.5" />
                             Was bedeutet "Aufbewahrung (Retention)"?
                         </h4>
                         <p className="text-sm text-slate-600 leading-relaxed">
@@ -116,7 +116,7 @@ export default function HelpPage() {
 
                     <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                         <h4 className="font-bold text-slate-800 mb-2 flex items-start gap-2">
-                            <Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+                            <Info size={20} className="text-blue-500 shrink-0 mt-0.5" />
                             Wie richte ich Quellen & Ziele ein?
                         </h4>
                         <p className="text-sm text-slate-600 leading-relaxed">
@@ -126,7 +126,7 @@ export default function HelpPage() {
 
                     <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
                         <h4 className="font-bold text-slate-800 mb-2 flex items-start gap-2">
-                            <Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+                            <Info size={20} className="text-blue-500 shrink-0 mt-0.5" />
                             Kann ich Jobs auch manuell starten?
                         </h4>
                         <p className="text-sm text-slate-600 leading-relaxed">
@@ -136,7 +136,7 @@ export default function HelpPage() {
 
                     <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
                         <h4 className="font-bold text-slate-800 mb-2 flex items-start gap-2">
-                            <Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+                            <Info size={20} className="text-blue-500 shrink-0 mt-0.5" />
                             Was passiert, wenn ein Backup abbricht?
                         </h4>
                         <p className="text-sm text-slate-600 leading-relaxed">
@@ -155,7 +155,7 @@ export default function HelpPage() {
                     <div className="relative z-10">
                         <div className="mb-6">
                             <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                                <AlertTriangle className="w-7 h-7 text-yellow-400" />
+                                <Warning size={28} className="text-yellow-400" />
                                 Problemlösung & Anleitungen
                             </h2>
                             <p className="text-slate-400 mt-2">Suche nach Stichworten, um schnelle Hilfe zu finden.</p>
@@ -163,7 +163,7 @@ export default function HelpPage() {
 
                         <div className="relative mb-8 max-w-2xl">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <Search className="h-5 w-5 text-slate-400" />
+                                <MagnifyingGlass size={20} className="text-slate-400" />
                             </div>
                             <input
                                 type="text"
@@ -180,7 +180,7 @@ export default function HelpPage() {
                             return (
                                 <div key={cat} className="mb-8">
                                     <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                        <MessageSquare className="w-4 h-4" />
+                                        <ChatCircleText size={16} />
                                         {cat}
                                     </h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -190,7 +190,7 @@ export default function HelpPage() {
                                                 className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-5 hover:bg-slate-800 transition-colors group"
                                             >
                                                 <h4 className="text-base font-bold text-white mb-2 flex items-start gap-2">
-                                                    <ChevronRight className="w-5 h-5 text-blue-500 shrink-0 mt-0.5 group-hover:translate-x-1 transition-transform" />
+                                                    <CaretRight size={20} className="text-blue-500 shrink-0 mt-0.5 group-hover:translate-x-1 transition-transform" />
                                                     {entry.title}
                                                 </h4>
                                                 <p className="text-slate-300 text-sm leading-relaxed pl-7">
@@ -205,7 +205,7 @@ export default function HelpPage() {
 
                         {filteredEntries.length === 0 && (
                             <div className="text-center py-12 bg-slate-800/20 rounded-2xl border border-slate-700/50 border-dashed">
-                                <Search className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+                                <MagnifyingGlass size={48} className="text-slate-600 mx-auto mb-4" />
                                 <p className="text-slate-400 text-lg">Keine Einträge für "{searchTerm}" gefunden.</p>
                                 <button
                                     onClick={() => setSearchTerm('')}
@@ -224,14 +224,14 @@ export default function HelpPage() {
                 <Link to="/manual" className="group flex items-center justify-between bg-linear-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-2xl p-6 hover:from-indigo-100 hover:to-blue-100 transition-colors">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center shadow-md">
-                            <BookOpen className="w-6 h-6 text-white" />
+                            <BookOpenText size={24} className="text-white" />
                         </div>
                         <div>
                             <p className="font-bold text-slate-900 text-lg">Handbuch öffnen</p>
                             <p className="text-slate-500 text-sm mt-0.5">Detailliertes Benutzerhandbuch mit allen Konzepten, Schritt-für-Schritt-Anleitungen und PDF-Download.</p>
                         </div>
                     </div>
-                    <ChevronRight className="w-6 h-6 text-indigo-400 group-hover:translate-x-1 transition-transform shrink-0" />
+                    <CaretRight size={24} className="text-indigo-400 group-hover:translate-x-1 transition-transform shrink-0" />
                 </Link>
             </section>
 

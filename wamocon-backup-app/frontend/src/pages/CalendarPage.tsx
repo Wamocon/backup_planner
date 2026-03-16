@@ -6,12 +6,11 @@ import {
 } from 'date-fns';
 import { de } from 'date-fns/locale';
 import {
-    Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronDown, ShieldCheck,
-    Clock, HardDrive, Info, Plus, X, CheckCircle2, XCircle, AlertCircle,
-    Loader2, TrendingUp, Server, Database
-} from 'lucide-react';
+    CalendarDots, CaretLeft, CaretRight, CaretDown, ShieldCheck,
+    Clock, HardDrive, Info, X, CheckCircle, XCircle, WarningCircle,
+    CircleNotch, TrendUp, Desktop
+} from '@phosphor-icons/react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../store/auth.store';
 import client from '../api/client';
 import JobModal from '../components/JobModal';
 import { CronExpressionParser } from 'cron-parser';
@@ -44,10 +43,10 @@ const getTypeColors = (type: string) => TYPE_COLORS[type] ?? TYPE_COLORS.full;
 
 // --- Status-Konfiguration für tatsächliche Runs ---
 const RUN_STATUS_CONFIG: Record<string, { icon: any; color: string; dotColor: string; bg: string; label: string }> = {
-    success: { icon: CheckCircle2, color: 'text-emerald-600', dotColor: 'bg-emerald-500', bg: 'bg-emerald-50 border-emerald-100', label: 'Erfolgreich' },
-    failed:  { icon: XCircle,      color: 'text-red-600',     dotColor: 'bg-red-500',     bg: 'bg-red-50 border-red-100',         label: 'Fehlgeschlagen' },
-    stopped: { icon: AlertCircle,  color: 'text-amber-600',   dotColor: 'bg-amber-400',   bg: 'bg-amber-50 border-amber-100',     label: 'Gestoppt' },
-    running: { icon: Loader2,      color: 'text-blue-600',    dotColor: 'bg-blue-500',    bg: 'bg-blue-50 border-blue-100',       label: 'Läuft...' },
+    success: { icon: CheckCircle,    color: 'text-emerald-600', dotColor: 'bg-emerald-500', bg: 'bg-emerald-50 border-emerald-100', label: 'Erfolgreich' },
+    failed:  { icon: XCircle,         color: 'text-red-600',     dotColor: 'bg-red-500',     bg: 'bg-red-50 border-red-100',         label: 'Fehlgeschlagen' },
+    stopped: { icon: WarningCircle,   color: 'text-amber-600',   dotColor: 'bg-amber-400',   bg: 'bg-amber-50 border-amber-100',     label: 'Gestoppt' },
+    running: { icon: CircleNotch,     color: 'text-blue-600',    dotColor: 'bg-blue-500',    bg: 'bg-blue-50 border-blue-100',       label: 'Läuft...' },
 };
 
 const getRunStatus = (status: string) => RUN_STATUS_CONFIG[status] ?? RUN_STATUS_CONFIG.failed;
@@ -74,9 +73,6 @@ export default function CalendarPage() {
 
     const todayRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
-
-    const user = useAuthStore(state => state.user);
-    const isAdmin = user?.role === 'admin';
 
     // Kalender-Grenzen berechnen
     const monthStart = startOfMonth(currentDate);
@@ -330,7 +326,7 @@ export default function CalendarPage() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                        <CalendarIcon className="h-5 w-5 text-white" />
+                        <CalendarDots size={20} className="text-white" />
                     </div>
                     <div>
                         <h1 className="text-2xl font-bold text-slate-800">Backup Kalender</h1>
@@ -383,7 +379,7 @@ export default function CalendarPage() {
                                 <span className="text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg text-sm font-semibold">
                                     {format(currentDate, 'yyyy')}
                                 </span>
-                                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${showYearPicker ? 'rotate-180' : ''}`} />
+                                <CaretDown size={16} className={`text-slate-400 transition-transform duration-200 ${showYearPicker ? 'rotate-180' : ''}`} />
                             </button>
                             {showYearPicker && (
                                 <div className="absolute top-full left-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-20 p-2 grid grid-cols-3 gap-1 min-w-48">
@@ -415,13 +411,13 @@ export default function CalendarPage() {
                                     onClick={() => setCurrentDate(subMonths(currentDate, 1))}
                                     className="p-1.5 hover:bg-slate-50 text-slate-600 transition-colors border-r border-slate-200"
                                 >
-                                    <ChevronLeft className="w-5 h-5" />
+                                    <CaretLeft size={20} />
                                 </button>
                                 <button
                                     onClick={() => setCurrentDate(addMonths(currentDate, 1))}
                                     className="p-1.5 hover:bg-slate-50 text-slate-600 transition-colors"
                                 >
-                                    <ChevronRight className="w-5 h-5" />
+                                    <CaretRight size={20} />
                                 </button>
                             </div>
                         </div>
@@ -442,7 +438,7 @@ export default function CalendarPage() {
                     <div className="flex-1 overflow-hidden relative">
                         {loading && (
                             <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-10">
-                                <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                                <CircleNotch size={32} className="text-blue-500 animate-spin" />
                             </div>
                         )}
                         {rows}
@@ -504,7 +500,7 @@ export default function CalendarPage() {
                                 {/* Geplante Ausführungen */}
                                 <div>
                                     <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                                        <CalendarIcon className="w-3.5 h-3.5" />
+                                        <CalendarDots size={14} />
                                         Geplante Ausführungen ({selectedDayJobs.length})
                                     </h4>
                                     {selectedDayJobs.length > 0 ? (
@@ -531,7 +527,7 @@ export default function CalendarPage() {
                                 {selectedDayRuns.length > 0 && (
                                     <div>
                                         <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <CheckCircle size={14} />
                                             Tatsächliche Ausführungen ({selectedDayRuns.length})
                                         </h4>
                                         <div className="space-y-2">
@@ -559,7 +555,7 @@ export default function CalendarPage() {
                                 {selectedDayUrb.length > 0 && (
                                     <div>
                                         <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                                            <Server className="w-3.5 h-3.5" />
+                                            <Desktop size={14} />
                                             URBackup Backups ({selectedDayUrb.length})
                                         </h4>
                                         <div className="space-y-2">
@@ -568,8 +564,8 @@ export default function CalendarPage() {
                                                     e.status === 'ok' ? 'bg-teal-50 border-teal-100 text-teal-800' : 'bg-amber-50 border-amber-100 text-amber-800'
                                                 }`}>
                                                     {e.backup_type === 'file'
-                                                        ? <Database className="w-4 h-4 shrink-0" />
-                                                        : <Server className="w-4 h-4 shrink-0" />}
+                                                        ? <HardDrive size={16} className="shrink-0" />
+                                                        : <Desktop size={16} className="shrink-0" />}
                                                     <div className="min-w-0">
                                                         <div className="text-sm font-semibold truncate">{e.client_name}</div>
                                                         <div className="text-xs opacity-70">
@@ -589,7 +585,7 @@ export default function CalendarPage() {
                                 {/* Leer-Zustand */}
                                 {selectedDayJobs.length === 0 && selectedDayRuns.length === 0 && selectedDayUrb.length === 0 && (
                                     <div className="text-center py-10">
-                                        <CalendarIcon className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+                                        <CalendarDots size={48} className="text-slate-200 mx-auto mb-3" />
                                         <p className="text-sm text-slate-400">Kein Backup für diesen Tag geplant.</p>
                                     </div>
                                 )}
@@ -602,7 +598,7 @@ export default function CalendarPage() {
                             {monthStats.total > 0 && (
                                 <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
                                     <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                                        <TrendingUp className="w-3.5 h-3.5" />
+                                        <TrendUp size={14} />
                                         {format(currentDate, 'MMMM', { locale: de })} – Übersicht
                                     </h4>
                                     <div className="grid grid-cols-3 gap-3 mb-3">
@@ -673,7 +669,7 @@ export default function CalendarPage() {
 
                             <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:border-purple-200 transition-colors group">
                                 <div className="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center mb-3 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                                    <CalendarIcon className="w-5 h-5" />
+                                    <CalendarDots size={20} />
                                 </div>
                                 <h4 className="font-bold text-slate-800">Wöchentlich (Full)</h4>
                                 <p className="text-sm text-slate-500 mt-2 leading-relaxed">

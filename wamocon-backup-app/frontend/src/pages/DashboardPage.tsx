@@ -4,7 +4,7 @@ import JobModal from '../components/JobModal';
 import { useAuthStore } from '../store/auth.store';
 import { useToastStore } from '../store/toast.store';
 import ConfirmModal from '../components/ConfirmModal';
-import { CheckCircle, XCircle, Loader2, Plus, ArrowRight, Server, HardDrive, RefreshCw, WifiOff, Play, Wifi, Cloud, Database, Clock, AlertTriangle } from 'lucide-react';
+import { CheckCircle, XCircle, CircleNotch, Plus, ArrowRight, Desktop, HardDrive, ArrowsClockwise, WifiSlash, Play, WifiHigh, Cloud, HardDrives, Clock, Warning } from '@phosphor-icons/react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow, parseISO, subDays, isSameDay, format } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -92,7 +92,6 @@ export default function DashboardPage() {
     const [error, setError] = useState('');
     const [syncing, setSyncing] = useState(false);
     const [urbClients, setUrbClients] = useState<UrbClient[]>([]);
-    const [startingBackup, setStartingBackup] = useState<string | null>(null);
     const [liveData, setLiveData] = useState<{ status: LiveStatus[]; activities: { current: LiveActivity[]; last: any[] } } | null>(null);
     const liveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -139,23 +138,6 @@ export default function DashboardPage() {
             setTimeout(() => { fetchDashboard(); fetchUrbClients(); setSyncing(false); }, 3000);
         } catch {
             setSyncing(false);
-        }
-    };
-
-    const handleStartBackup = async (clientId: number, backupType: string) => {
-        const key = `${clientId}-${backupType}`;
-        setStartingBackup(key);
-        try {
-            const resp = await client.post('/urbackup/start', { clientId, backupType });
-            if (resp.data.success) {
-                addToast(`Backup gestartet (${backupType.replace('_', ' ')}).`, 'success');
-            } else {
-                addToast('Backup konnte nicht gestartet werden – Client offline?', 'error');
-            }
-        } catch (e: any) {
-            addToast(e.response?.data?.details || 'Backup-Start fehlgeschlagen.', 'error');
-        } finally {
-            setStartingBackup(null);
         }
     };
 
@@ -242,16 +224,12 @@ export default function DashboardPage() {
         });
     };
 
-    const handleEditJob = () => {
-        addToast("Um Jobs zu bearbeiten, wechsle bitte zu 'Backup-Pläne'.", 'info');
-    };
-
     if (loading) {
-        return <div className="flex justify-center items-center h-full min-h-[400px]"><Loader2 className="w-10 h-10 animate-spin text-blue-500" /></div>;
+        return <div className="flex justify-center items-center h-full min-h-[400px]"><CircleNotch size={40} className="animate-spin text-blue-500" /></div>;
     }
 
     if (error) {
-        return <div className="text-red-500 p-6 bg-red-50 rounded-2xl border border-red-100 font-medium flex items-center shadow-sm"><XCircle className="w-6 h-6 mr-3" /> {error}</div>;
+        return <div className="text-red-500 p-6 bg-red-50 rounded-2xl border border-red-100 font-medium flex items-center shadow-sm"><XCircle size={24} className="mr-3" /> {error}</div>;
     }
 
     const isRunning = data?.last_runs?.some(r => r.status === 'running');
@@ -279,7 +257,7 @@ export default function DashboardPage() {
                         onClick={() => setIsModalOpen(true)}
                         className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/30 transition-all hover:-translate-y-0.5"
                     >
-                        <Plus className="w-5 h-5" /> Neuen Plan erstellen
+                        <Plus size={20} /> Neuen Plan erstellen
                     </button>
                 )}
             </div>
@@ -287,7 +265,7 @@ export default function DashboardPage() {
             {isRunning && (
                 <div className="bg-indigo-50/50 backdrop-blur border border-indigo-200 p-5 rounded-2xl flex items-center shadow-lg shadow-indigo-500/5">
                     <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center mr-4 shrink-0">
-                        <Loader2 className="w-6 h-6 text-indigo-600 animate-spin" />
+                        <CircleNotch size={24} className="text-indigo-600 animate-spin" />
                     </div>
                     <div className="flex-1">
                         <h3 className="text-indigo-900 font-bold text-lg">Backups werden gerade ausgeführt</h3>
@@ -297,7 +275,7 @@ export default function DashboardPage() {
                                 onClick={fetchDashboard}
                                 className="flex items-center gap-1.5 text-sm font-semibold text-indigo-700 hover:text-indigo-900 bg-indigo-100 hover:bg-indigo-200 px-3 py-1.5 rounded-lg transition-colors"
                             >
-                                <RefreshCw className="w-3.5 h-3.5" /> Aktualisieren
+                                <ArrowsClockwise size={14} /> Aktualisieren
                             </button>
                         </div>
                     </div>
@@ -309,7 +287,7 @@ export default function DashboardPage() {
                 {/* Konfigurierte Pläne */}
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-center relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <CheckCircle className="w-24 h-24 text-slate-900" />
+                        <CheckCircle size={96} className="text-slate-900" />
                     </div>
                     <h3 className="text-slate-500 text-sm font-semibold uppercase tracking-wider mb-2 z-10">Konfigurierte Pläne</h3>
                     <p className="text-5xl font-black text-slate-800 tracking-tight z-10">{data?.jobs_count || 0}</p>
@@ -384,7 +362,7 @@ export default function DashboardPage() {
                     <div>
                         <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                             <span className="w-8 h-8 rounded-lg bg-teal-100 text-teal-600 flex items-center justify-center">
-                                <Cloud className="w-5 h-5" />
+                                <Cloud size={20} />
                             </span>
                             Cloud-Backups (MacStudio · rclone)
                         </h2>
@@ -393,7 +371,7 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-3">
                         {macStudioError && (
                             <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
-                                <WifiOff className="w-3.5 h-3.5" /> MacStudio nicht erreichbar
+                                <WifiSlash size={14} /> MacStudio nicht erreichbar
                             </span>
                         )}
                         {isAdmin && !macStudioError && (
@@ -402,7 +380,7 @@ export default function DashboardPage() {
                                 disabled={triggeringBackup !== null || macStudioData?.running?.anyRunning}
                                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-teal-600 border border-teal-200 rounded-lg hover:bg-teal-50 disabled:opacity-50 transition-colors"
                             >
-                                {triggeringBackup === 'all' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+                                {triggeringBackup === 'all' ? <CircleNotch size={14} className="animate-spin" /> : <Play size={14} />}
                                 Alle starten
                             </button>
                         )}
@@ -411,23 +389,23 @@ export default function DashboardPage() {
 
                 {macStudioError ? (
                     <div className="p-8 text-center text-slate-400 text-sm flex flex-col items-center gap-2">
-                        <Cloud className="w-10 h-10 opacity-20" />
+                        <Cloud size={40} className="opacity-20" />
                         <p>MacStudio Dashboard nicht erreichbar. Prüfe die Verbindung zu <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">192.168.178.62:9090</code>.</p>
                     </div>
                 ) : !macStudioData ? (
-                    <div className="p-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-teal-500" /></div>
+                    <div className="p-8 flex justify-center"><CircleNotch size={24} className="animate-spin text-teal-500" /></div>
                 ) : (
                     <div>
                         {macStudioData.running.anyRunning && (
                             <div className="mx-6 mt-4 bg-teal-50 border border-teal-200 rounded-xl p-3 flex items-center gap-2 text-sm text-teal-800">
-                                <Loader2 className="w-4 h-4 animate-spin text-teal-500 shrink-0" />
+                                <CircleNotch size={16} className="animate-spin text-teal-500 shrink-0" />
                                 <span>Backup läuft gerade auf dem MacStudio…</span>
                             </div>
                         )}
                         <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
                             {([
                                 { key: 'gdrive' as const, label: 'Google Drive', icon: Cloud, color: 'blue' },
-                                { key: 'nas' as const, label: 'Synology NAS', icon: Database, color: 'purple' },
+                                { key: 'nas' as const, label: 'Synology NAS', icon: HardDrives, color: 'purple' },
                             ]).map(({ key, label, icon: Icon, color }) => {
                                 const running = macStudioData.running[key];
                                 const latest = macStudioData.latestBackup[key];
@@ -437,14 +415,14 @@ export default function DashboardPage() {
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2">
                                                 <span className={`w-7 h-7 rounded-lg bg-${color}-50 text-${color}-600 flex items-center justify-center`}>
-                                                    <Icon className="w-4 h-4" />
+                                                    <Icon size={16} />
                                                 </span>
                                                 <span className="font-semibold text-slate-800 text-sm">{label}</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 {running?.running ? (
                                                     <span className="flex items-center gap-1 text-xs text-teal-700 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-full font-medium">
-                                                        <Loader2 className="w-3 h-3 animate-spin" /> Läuft
+                                                        <CircleNotch size={12} className="animate-spin" /> Läuft
                                                     </span>
                                                 ) : (
                                                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${isOk ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
@@ -458,7 +436,7 @@ export default function DashboardPage() {
                                                         title={`${label} Backup jetzt starten`}
                                                         className="p-1 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition-colors"
                                                     >
-                                                        {triggeringBackup === key ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+                                                        {triggeringBackup === key ? <CircleNotch size={14} className="animate-spin" /> : <Play size={14} />}
                                                     </button>
                                                 )}
                                             </div>
@@ -485,7 +463,7 @@ export default function DashboardPage() {
                 <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center gap-3">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                         <span className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
-                            <Server className="w-5 h-5" />
+                            <Desktop size={20} />
                         </span>
                         <div className="min-w-0">
                             <h2 className="font-bold text-slate-800 text-sm flex items-center gap-2">
@@ -503,20 +481,20 @@ export default function DashboardPage() {
                     {hasUrBackupData && (
                         <div className="flex gap-2 flex-wrap">
                             <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border ${urbackup.clients_online > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
-                                <Wifi className="w-3 h-3" /> {urbackup.clients_online}/{urbackup.clients_total} online
+                                <WifiHigh size={12} /> {urbackup.clients_online}/{urbackup.clients_total} online
                             </span>
                             <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border ${urbackup.clients_file_ok === urbackup.clients_total ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                                <HardDrive className="w-3 h-3" /> File {urbackup.clients_file_ok}/{urbackup.clients_total}
+                                <HardDrive size={12} /> File {urbackup.clients_file_ok}/{urbackup.clients_total}
                             </span>
                             <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border ${urbackup.clients_image_ok === urbackup.clients_total ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                                <Server className="w-3 h-3" /> Image {urbackup.clients_image_ok}/{urbackup.clients_total}
+                                <Desktop size={12} /> Image {urbackup.clients_image_ok}/{urbackup.clients_total}
                             </span>
                         </div>
                     )}
                     <div className="flex items-center gap-2 flex-wrap">
                         {urbackup?.sync?.last_sync_error && (
                             <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg flex items-center gap-1">
-                                <WifiOff className="w-3 h-3" /> Nicht erreichbar
+                                <WifiSlash size={12} /> Nicht erreichbar
                             </span>
                         )}
                         {isAdmin && (
@@ -525,15 +503,15 @@ export default function DashboardPage() {
                                 disabled={syncing}
                                 className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 disabled:opacity-50 transition-colors"
                             >
-                                <RefreshCw className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`} />
+                                <ArrowsClockwise size={12} className={syncing ? 'animate-spin' : ''} />
                                 {syncing ? 'Sync...' : 'Sync'}
                             </button>
                         )}
                         <Link to="/devices" className="text-xs text-slate-500 hover:text-indigo-600 font-medium flex items-center gap-1">
-                            Alle Geräte <ArrowRight className="w-3 h-3" />
+                            Alle Geräte <ArrowRight size={12} />
                         </Link>
                         <Link to="/logs?tab=urbackup" className="text-xs text-slate-500 hover:text-indigo-600 font-medium flex items-center gap-1">
-                            Logs <ArrowRight className="w-3 h-3" />
+                            Logs <ArrowRight size={12} />
                         </Link>
                     </div>
                 </div>
@@ -552,7 +530,7 @@ export default function DashboardPage() {
                                     <div key={i} className="px-6 py-4">
                                         <div className="flex justify-between items-center mb-1.5">
                                             <div className="flex items-center gap-2">
-                                                <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" />
+                                                <CircleNotch size={16} className="text-indigo-500 animate-spin" />
                                                 <span className="font-semibold text-slate-800 text-sm">{act.name}</span>
                                                 <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{act.action}</span>
                                                 {act.paused && <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Pausiert</span>}
@@ -578,7 +556,7 @@ export default function DashboardPage() {
                                 <p className="text-sm text-slate-400 italic">Keine Clients gefunden</p>
                             ) : liveData.status.map((s) => (
                                 <div key={s.id} className="flex items-center gap-2 text-sm">
-                                    <Wifi className={`w-4 h-4 ${s.online ? 'text-emerald-500' : 'text-slate-300'}`} />
+                                    <WifiHigh size={16} className={s.online ? 'text-emerald-500' : 'text-slate-300'} />
                                     <span className={`font-medium ${s.online ? 'text-slate-800' : 'text-slate-400'}`}>{s.name}</span>
                                     <span className={`text-xs px-1.5 py-0.5 rounded-full ${s.online ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
                                         {s.online ? 'Online' : 'Offline'}
@@ -598,7 +576,7 @@ export default function DashboardPage() {
                     if (nokDevices.length === 0) return null;
                     return (
                         <div className="px-6 py-3 border-t border-amber-100 bg-amber-50/50 flex flex-wrap items-center gap-2">
-                            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                            <Warning size={16} className="text-amber-500 shrink-0" />
                             <span className="text-xs font-semibold text-amber-700">Backup-Problem bei:</span>
                             {nokDevices.map(c => (
                                 <span key={c.id} className="text-xs bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full font-medium">{c.name}</span>

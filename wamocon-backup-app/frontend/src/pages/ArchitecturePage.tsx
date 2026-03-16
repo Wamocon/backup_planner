@@ -1,7 +1,7 @@
 import {
-    Network, Server, Cloud, HardDrive, Database, Monitor, Shield,
-    ArrowRight, ArrowDown, Mail, FileText, CheckCircle2, Lock
-} from 'lucide-react';
+    TreeStructure, Desktop, Cloud, HardDrive, HardDrives, Desktop as Monitor, ShieldCheck,
+    ArrowRight, ArrowDown, Envelope, Scroll as ScrollIcon, CheckCircle, Lock
+} from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import client from '../api/client';
 
@@ -13,8 +13,8 @@ const LAYERS = [
         items: [
             { icon: Cloud, label: 'OneDrive Business', desc: 'wmc-onedrive:', color: 'blue' },
             { icon: Cloud, label: 'Google Drive', desc: 'wmc-googledrive:', color: 'emerald' },
-            { icon: Mail, label: 'E-Mail-Postfächer', desc: 'IMAP / Exchange', color: 'amber' },
-            { icon: FileText, label: 'Lokale Dateien', desc: 'Rechnungen, Belege, Dokumente', color: 'purple' },
+            { icon: Envelope, label: 'E-Mail-Postfächer', desc: 'IMAP / Exchange', color: 'amber' },
+            { icon: ScrollIcon, label: 'Lokale Dateien', desc: 'Rechnungen, Belege, Dokumente', color: 'purple' },
         ],
     },
     {
@@ -22,9 +22,9 @@ const LAYERS = [
         subtitle: 'WAMOCON Backup Planner auf dem Mac Studio',
         color: 'indigo',
         items: [
-            { icon: Server, label: 'Node.js Backend', desc: 'Express API, Scheduler (node-cron), JWT Auth', color: 'indigo' },
-            { icon: Database, label: 'SQLite Datenbank', desc: 'Jobs, Runs, Konfiguration, Benutzer', color: 'slate' },
-            { icon: Network, label: 'rclone', desc: 'Dateitransfer zwischen allen Remotes', color: 'cyan' },
+            { icon: Desktop, label: 'Node.js Backend', desc: 'Express API, Scheduler (node-cron), JWT Auth', color: 'indigo' },
+            { icon: HardDrives, label: 'SQLite Datenbank', desc: 'Jobs, Runs, Konfiguration, Benutzer', color: 'slate' },
+            { icon: TreeStructure, label: 'rclone', desc: 'Dateitransfer zwischen allen Remotes', color: 'cyan' },
             { icon: Monitor, label: 'UrBackup Server', desc: 'Notebook-Sicherung (Windows/macOS Clients)', color: 'violet' },
         ],
     },
@@ -35,7 +35,7 @@ const LAYERS = [
         items: [
             { icon: HardDrive, label: 'Synology NAS', desc: 'synology-nas: — Lokale Sicherung im Haus', color: 'emerald' },
             { icon: Cloud, label: 'Cloud-Speicher', desc: 'OneDrive / Google Drive — Offsite Sicherung', color: 'blue' },
-            { icon: Server, label: 'Mac Studio (lokal)', desc: 'UrBackup Volumes — Notebook-Images', color: 'slate' },
+            { icon: Desktop, label: 'Mac Studio (lokal)', desc: 'UrBackup Volumes — Notebook-Images', color: 'slate' },
         ],
     },
 ];
@@ -139,7 +139,7 @@ export default function ArchitecturePage() {
             {/* Header */}
             <div className="flex items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center shadow-lg shadow-slate-500/20">
-                    <Network className="h-5 w-5 text-white" />
+                    <TreeStructure size={20} className="text-white" />
                 </div>
                 <div>
                     <h1 className="text-2xl font-bold text-slate-800">System-Architektur</h1>
@@ -190,7 +190,7 @@ export default function ArchitecturePage() {
                                 {/* Arrow between layers */}
                                 {li < LAYERS.length - 1 && (
                                     <div className="flex justify-center py-3">
-                                        <ArrowDown className="w-6 h-6 text-slate-300" />
+                                        <ArrowDown size={24} className="text-slate-300" />
                                     </div>
                                 )}
                             </div>
@@ -214,7 +214,7 @@ export default function ArchitecturePage() {
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2 mb-2">
                                             <span className={`inline-flex items-center gap-1.5 text-sm font-bold ${c.text}`}>
-                                                {bt.type === 'gobd' && <Shield className="w-4 h-4" />}
+                                                {bt.type === 'gobd' && <ShieldCheck size={16} />}
                                                 {bt.label}
                                             </span>
                                             <code className={`text-xs px-2 py-0.5 rounded-full font-mono ${c.badge}`}>{bt.type}</code>
@@ -243,7 +243,7 @@ export default function ArchitecturePage() {
                                         <ul className="space-y-1.5">
                                             {bt.compliance.map((item, i) => (
                                                 <li key={i} className="flex items-start gap-2 text-xs text-slate-600">
-                                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" />
+                                                    <CheckCircle size={14} className="text-emerald-500 mt-0.5 shrink-0" />
                                                     {item}
                                                 </li>
                                             ))}
@@ -284,7 +284,7 @@ export default function ArchitecturePage() {
             {/* ===== 3-2-1 REGEL ===== */}
             <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 text-white shadow-lg">
                 <div className="flex items-center gap-3 mb-4">
-                    <Shield className="w-6 h-6 text-blue-400" />
+                    <ShieldCheck size={24} className="text-blue-400" />
                     <h2 className="text-lg font-bold">Die 3-2-1 Backup-Regel</h2>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -310,7 +310,7 @@ export default function ArchitecturePage() {
             <div className="bg-white rounded-2xl shadow-sm border border-emerald-200 overflow-hidden">
                 <div className="p-6 border-b border-emerald-100 bg-emerald-50/50">
                     <div className="flex items-center gap-2">
-                        <Shield className="w-5 h-5 text-emerald-600" />
+                        <ShieldCheck size={20} className="text-emerald-600" />
                         <h2 className="text-lg font-bold text-slate-800">GoBD — Verantwortungsteilung Steuerbüro / WAMOCON</h2>
                     </div>
                     <p className="text-sm text-slate-500 mt-1">Wer sichert was? Übersicht der Zuständigkeiten für buchhaltungsrelevante Daten.</p>
@@ -328,7 +328,7 @@ export default function ArchitecturePage() {
                                     'Simba Direkt (Portal): Gehostet und gebackupt von Simba',
                                 ].map((item, i) => (
                                     <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
-                                        <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                                        <CheckCircle size={16} className="text-emerald-500 mt-0.5 shrink-0" />
                                         {item}
                                     </li>
                                 ))}

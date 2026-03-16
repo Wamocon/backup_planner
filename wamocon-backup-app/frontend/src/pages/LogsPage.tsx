@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import client from '../api/client';
-import { FileText, Loader2, AlertCircle, CalendarClock, Database, Server, HardDrive, CheckCircle2, XCircle, Copy, Search } from 'lucide-react';
+import { Scroll, CircleNotch, WarningCircle, CalendarCheck, HardDrives, Desktop, HardDrive, CheckCircle, XCircle, Copy, MagnifyingGlass } from '@phosphor-icons/react';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -125,13 +125,13 @@ export default function LogsPage() {
                         onClick={() => setActiveTab('rclone')}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'rclone' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
                     >
-                        <Database className="w-4 h-4" /> rclone
+                        <HardDrives size={16} /> rclone
                     </button>
                     <button
                         onClick={() => setActiveTab('urbackup')}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'urbackup' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
                     >
-                        <Server className="w-4 h-4" /> URBackup
+                        <Desktop size={16} /> URBackup
                     </button>
                 </div>
             </div>
@@ -144,11 +144,11 @@ export default function LogsPage() {
                     <div className="w-1/3 bg-slate-50/50 rounded-2xl border border-slate-100 flex flex-col overflow-hidden">
                         <div className="p-4 border-b border-slate-100 bg-white shadow-sm z-10 space-y-3">
                             <h2 className="font-bold text-slate-800 flex items-center gap-2">
-                                <CalendarClock className="w-5 h-5 text-indigo-500" />
+                                <CalendarCheck size={20} className="text-indigo-500" />
                                 Letzte Ausführungen
                             </h2>
                             <div className="relative">
-                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                <MagnifyingGlass size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <input
                                     type="text"
                                     placeholder="Job-Name filtern..."
@@ -189,7 +189,7 @@ export default function LogsPage() {
                         </div>
                         <div className="flex-1 overflow-y-auto p-3">
                             {loading ? (
-                                <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-indigo-500" /></div>
+                                <div className="flex justify-center p-8"><CircleNotch size={32} className="animate-spin text-indigo-500" /></div>
                             ) : (
                                 <ul className="space-y-2">
                                     {filteredRuns.map(run => (
@@ -205,7 +205,7 @@ export default function LogsPage() {
                                                 <div className="flex justify-between items-start w-full gap-2">
                                                     <div className="truncate flex-1">
                                                         <span className="font-bold text-sm text-slate-800 truncate leading-tight flex items-center gap-1.5">
-                                                            <Database className="w-3.5 h-3.5 text-slate-400" />
+                                                            <HardDrives size={14} className="text-slate-400" />
                                                             {run.job_name || `Job #${run.job_id}`}
                                                         </span>
                                                     </div>
@@ -239,13 +239,13 @@ export default function LogsPage() {
                                             <div className="w-3 h-3 rounded-full bg-amber-500/50"></div>
                                             <div className="w-3 h-3 rounded-full bg-emerald-500/50"></div>
                                         </div>
-                                        <FileText className="w-4 h-4 ml-2 text-slate-500" />
+                                        <Scroll size={16} className="ml-2 text-slate-500" />
                                         <span className="font-mono text-sm tracking-wide">run_{selectedRun.id}.log</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {selectedRun.status === 'failed' && selectedRun.error_message && (
                                             <div className="flex items-center gap-2 text-rose-400 bg-rose-950/50 px-3 py-1.5 rounded-lg border border-rose-900/50">
-                                                <AlertCircle className="w-4 h-4" />
+                                                <WarningCircle size={16} />
                                                 <span className="text-xs font-medium truncate max-w-[200px] sm:max-w-[400px]">{selectedRun.error_message}</span>
                                             </div>
                                         )}
@@ -255,7 +255,7 @@ export default function LogsPage() {
                                                 className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 bg-slate-800 hover:bg-slate-700 px-2.5 py-1.5 rounded-lg transition-colors"
                                                 title="Log in Zwischenablage kopieren"
                                             >
-                                                <Copy className="w-3.5 h-3.5" />
+                                                <Copy size={14} />
                                                 {copied ? 'Kopiert!' : 'Kopieren'}
                                             </button>
                                         )}
@@ -266,7 +266,7 @@ export default function LogsPage() {
                                 <div className="flex-1 p-6 overflow-y-auto font-mono text-[13px] leading-relaxed whitespace-pre-wrap selection:bg-emerald-900 selection:text-emerald-100 relative">
                                     {loadingLog ? (
                                         <div className="absolute inset-0 flex flex-col items-center justify-center text-emerald-600/50 gap-4">
-                                            <Loader2 className="w-8 h-8 animate-spin" />
+                                            <CircleNotch size={32} className="animate-spin" />
                                             <p className="animate-pulse">Fetching stdout chunk...</p>
                                         </div>
                                     ) : logContent ? (
@@ -286,7 +286,7 @@ export default function LogsPage() {
                             </>
                         ) : (
                             <div className="flex-1 flex flex-col items-center justify-center text-slate-600 gap-4">
-                                <FileText className="w-16 h-16 opacity-20" />
+                                <Scroll size={64} className="opacity-20" />
                                 <p className="font-medium">Wähle links eine Ausführung aus, um die Logs zu betrachten.</p>
                             </div>
                         )}
@@ -299,7 +299,7 @@ export default function LogsPage() {
                 <div className="flex flex-col flex-1 min-h-0 bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
                     {/* Filter-Leiste */}
                     <div className="p-4 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
-                        <Server className="w-4 h-4 text-indigo-500 shrink-0" />
+                        <Desktop size={16} className="text-indigo-500 shrink-0" />
                         <span className="text-sm font-semibold text-slate-700">Letzte 90 Tage</span>
                         <div className="flex gap-1 ml-auto">
                             {(['all', 'file', 'image'] as const).map(f => (
@@ -315,10 +315,10 @@ export default function LogsPage() {
                     </div>
 
                     {urbLoading ? (
-                        <div className="flex-1 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-indigo-500" /></div>
+                        <div className="flex-1 flex items-center justify-center"><CircleNotch size={32} className="animate-spin text-indigo-500" /></div>
                     ) : urbHistory.length === 0 ? (
                         <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-3">
-                            <Server className="w-12 h-12 opacity-20" />
+                            <Desktop size={48} className="opacity-20" />
                             <p className="text-sm">Keine URBackup-Einträge im Cache. Warte auf den ersten Sync oder prüfe die Verbindung.</p>
                         </div>
                     ) : (
@@ -338,12 +338,12 @@ export default function LogsPage() {
                                     {urbHistory.map(entry => (
                                         <tr key={entry.id} className="hover:bg-slate-50/50 transition-colors">
                                             <td className="px-6 py-3 font-medium text-slate-800 text-sm flex items-center gap-2">
-                                                <HardDrive className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                                <HardDrive size={14} className="text-slate-400 shrink-0" />
                                                 {entry.client_name}
                                             </td>
                                             <td className="px-6 py-3">
                                                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold uppercase ${entry.backup_type === 'file' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'}`}>
-                                                    {entry.backup_type === 'file' ? <Database className="w-3 h-3" /> : <Server className="w-3 h-3" />}
+                                                    {entry.backup_type === 'file' ? <HardDrives size={12} /> : <Desktop size={12} />}
                                                     {entry.backup_type}{entry.incremental ? ' · Inkr.' : ''}
                                                     {entry.letter ? ` (${entry.letter}:)` : ''}
                                                 </span>
@@ -357,10 +357,10 @@ export default function LogsPage() {
                                             </td>
                                             <td className="px-6 py-3">
                                                 {entry.status === 'ok'
-                                                    ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600"><CheckCircle2 className="w-3.5 h-3.5" /> OK</span>
+                                                    ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600"><CheckCircle size={14} /> OK</span>
                                                     : entry.status === 'partial'
-                                                        ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-500"><AlertCircle className="w-3.5 h-3.5" /> Partial</span>
-                                                        : <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-500"><XCircle className="w-3.5 h-3.5" /> Fehler</span>
+                                                        ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-500"><WarningCircle size={14} /> Partial</span>
+                                                        : <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-500"><XCircle size={14} /> Fehler</span>
                                                 }
                                             </td>
                                         </tr>

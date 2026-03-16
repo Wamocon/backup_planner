@@ -1,4 +1,4 @@
-import { BookOpen, Download, ShieldCheck, Database, History, Fingerprint, Settings, Monitor, RefreshCw, ChevronRight } from 'lucide-react';
+import { BookOpenText, DownloadSimple, ShieldCheck, HardDrives, ClockCounterClockwise, Fingerprint, GearSix, Desktop, ArrowsClockwise, CaretRight } from '@phosphor-icons/react';
 
 const chapters = [
     { id: 'overview', number: '1', title: 'Systemübersicht' },
@@ -20,7 +20,7 @@ export default function ManualPage() {
             {/* Print-only title header */}
             <div className="hidden print:block mb-8 border-b-2 border-slate-300 pb-6">
                 <div className="flex items-center gap-3 mb-2">
-                    <Database className="w-10 h-10 text-slate-700" />
+                    <HardDrives size={40} className="text-slate-700" />
                     <div>
                         <h1 className="text-3xl font-black text-slate-900 tracking-tight">WAMOCON Backup Planner</h1>
                         <p className="text-slate-500 text-sm">Benutzerhandbuch · Stand: März 2026</p>
@@ -34,7 +34,7 @@ export default function ManualPage() {
                 <div className="flex items-start justify-between mb-10 print:hidden">
                     <div>
                         <h1 className="text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-3">
-                            <BookOpen className="w-8 h-8 text-indigo-500" />
+                            <BookOpenText size={32} className="text-indigo-500" />
                             Benutzerhandbuch
                         </h1>
                         <p className="mt-3 text-slate-500 text-lg leading-relaxed max-w-2xl">
@@ -46,7 +46,7 @@ export default function ManualPage() {
                         className="shrink-0 flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md shadow-indigo-500/20 transition-colors"
                         title="Handbuch als PDF speichern (Browser-Druckdialog öffnen)"
                     >
-                        <Download className="w-5 h-5" />
+                        <DownloadSimple size={20} />
                         Als PDF speichern
                     </button>
                 </div>
@@ -65,7 +65,7 @@ export default function ManualPage() {
                                         {ch.number}
                                     </span>
                                     <span className="font-medium">{ch.title}</span>
-                                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-400 transition-colors print:hidden" />
+                                    <CaretRight size={16} className="text-slate-300 group-hover:text-indigo-400 transition-colors print:hidden" />
                                 </a>
                             </li>
                         ))}
@@ -87,7 +87,7 @@ export default function ManualPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
                                     <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
-                                        <Settings className="w-5 h-5 text-slate-500" />
+                                        <GearSix size={20} className="text-slate-500" />
                                         Kernkomponenten
                                     </h3>
                                     <ul className="text-sm text-slate-600 space-y-1.5">
@@ -99,7 +99,7 @@ export default function ManualPage() {
                                 </div>
                                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
                                     <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
-                                        <Monitor className="w-5 h-5 text-slate-500" />
+                                        <Desktop size={20} className="text-slate-500" />
                                         Gesicherte Systeme
                                     </h3>
                                     <ul className="text-sm text-slate-600 space-y-1.5">
@@ -120,7 +120,7 @@ export default function ManualPage() {
                         </div>
                         <div className="bg-linear-to-br from-indigo-900 to-slate-900 rounded-3xl p-8 shadow-xl relative overflow-hidden print:bg-white print:border-2 print:border-slate-300 print:rounded-xl print:shadow-none">
                             <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none print:hidden">
-                                <ShieldCheck className="w-64 h-64 text-white" />
+                                <ShieldCheck size={256} className="text-white" />
                             </div>
                             <div className="relative z-10">
                                 <p className="text-indigo-200 text-lg mb-8 max-w-3xl leading-relaxed print:text-slate-700">
@@ -159,7 +159,7 @@ export default function ManualPage() {
                         <div className="space-y-5">
                             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-5 items-start">
                                 <div className="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
-                                    <Database className="w-6 h-6" />
+                                    <HardDrives size={24} />
                                 </div>
                                 <div className="flex-1">
                                     <h3 className="text-xl font-bold text-slate-800 mb-2">Vollbackup (rclone sync)</h3>
@@ -181,7 +181,7 @@ export default function ManualPage() {
 
                             <div className="bg-white p-6 rounded-2xl border border-slate-200 border-l-4 border-l-blue-500 shadow-sm flex flex-col md:flex-row gap-5 items-start">
                                 <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                                    <History className="w-6 h-6" />
+                                    <ClockCounterClockwise size={24} />
                                 </div>
                                 <div className="flex-1">
                                     <h3 className="text-xl font-bold text-slate-800 mb-2">
@@ -206,7 +206,7 @@ export default function ManualPage() {
 
                             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-5 items-start">
                                 <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
-                                    <Fingerprint className="w-6 h-6" />
+                                    <Fingerprint size={24} />
                                 </div>
                                 <div className="flex-1">
                                     <h3 className="text-xl font-bold text-slate-800 mb-2">Differenzielles Backup</h3>
@@ -278,7 +278,7 @@ export default function ManualPage() {
                         <div className="space-y-5">
                             <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
                                 <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                    <RefreshCw className="w-5 h-5 text-indigo-500" />
+                                    <ArrowsClockwise size={20} className="text-indigo-500" />
                                     Neuen Plan anlegen
                                 </h3>
                                 <ol className="text-sm text-slate-600 space-y-3 list-decimal pl-5">
@@ -435,7 +435,7 @@ services:
                         onClick={handlePrint}
                         className="flex items-center gap-3 px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-2xl shadow-lg shadow-indigo-500/20 transition-colors text-lg"
                     >
-                        <Download className="w-6 h-6" />
+                        <DownloadSimple size={24} />
                         Handbuch als PDF speichern
                     </button>
                 </div>

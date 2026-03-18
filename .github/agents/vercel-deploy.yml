@@ -1,0 +1,52 @@
+name: Deploy to Vercel
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set Deployment Arguments
+        id: set-args
+        shell: bash
+        run: |
+          # Logic: Only use --prod flag on a PUSH (Merge), not on a Pull Request
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "vercel_args=--prod" >> $GITHUB_OUTPUT
+            echo "type=Production" >> $GITHUB_OUTPUT
+          else
+            echo "vercel_args=" >> $GITHUB_OUTPUT
+            echo "type=Preview" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          # These 2 are pulled from your GitHub Organization Secrets
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          
+          # This one is pulled from your Repository Secrets
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_PROD }}
+          
+          working-directory: ./
+          vercel-args: ${{ steps.set-vars.outputs.vercel_args }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deployment Summary
+        run: |
+          echo "Deployment Type: ${{ steps.set-args.outputs.type }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "Branch: ${{ github.ref_name }}"

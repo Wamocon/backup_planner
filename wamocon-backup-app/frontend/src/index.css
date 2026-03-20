@@ -99,6 +99,11 @@ body {
 .dark .bg-red-50         { background-color: rgba(239, 68,  68,  0.12); }
 .dark .bg-blue-50        { background-color: rgba(59,  130, 246, 0.12); }
 .dark .bg-purple-50      { background-color: rgba(168, 85,  247, 0.12); }
+/* Bug 2: Differential-Badge bg-orange-50 fehlte */
+.dark .bg-orange-50      { background-color: rgba(249, 115, 22,  0.12); }
+/* Bug 5: opacity-modified Varianten für Kalender-Heute-Zelle */
+.dark .bg-blue-50\/50    { background-color: rgba(59,  130, 246, 0.08); }
+.dark .bg-indigo-50\/30  { background-color: rgba(99, 102, 241, 0.08); }
 
 /* — Colored badge borders — */
 .dark .border-indigo-200  { border-color: rgba(99,  102, 241, 0.35); }
@@ -107,6 +112,15 @@ body {
 .dark .border-amber-200   { border-color: rgba(245, 158, 11,  0.35); }
 .dark .border-red-200     { border-color: rgba(239, 68,  68,  0.35); }
 .dark .border-blue-200    { border-color: rgba(59,  130, 246, 0.35); }
+/* Bug 3: -100 Varianten (Status-Badges, Kalender-Badges) fehlten */
+.dark .border-indigo-100  { border-color: rgba(99,  102, 241, 0.25); }
+.dark .border-teal-100    { border-color: rgba(20,  184, 166, 0.25); }
+.dark .border-emerald-100 { border-color: rgba(16,  185, 129, 0.25); }
+.dark .border-amber-100   { border-color: rgba(245, 158, 11,  0.25); }
+.dark .border-red-100     { border-color: rgba(239, 68,  68,  0.25); }
+.dark .border-blue-100    { border-color: rgba(59,  130, 246, 0.25); }
+.dark .border-purple-100  { border-color: rgba(168, 85,  247, 0.25); }
+.dark .border-orange-100  { border-color: rgba(249, 115, 22,  0.25); }
 
 /* — Dark badge text → lighter counterpart — */
 .dark .text-indigo-900 { color: rgb(199 210 254); }             /* indigo-200 */
@@ -114,6 +128,13 @@ body {
 .dark .text-indigo-700 { color: rgb(165 180 252); }             /* indigo-300 */
 .dark .text-teal-800   { color: rgb(153 246 228); }             /* teal-200   */
 .dark .text-teal-700   { color: rgb(94  234 212); }             /* teal-300   */
+.dark .text-teal-600   { color: rgb(45  212 191); }             /* teal-400   */
+
+/* Bug 1: Backup-Typ-Badge-Text (Calendar, Jobs) → heller im Dark Mode */
+.dark .text-purple-700 { color: rgb(216 180 254); }             /* purple-200 */
+.dark .text-blue-700   { color: rgb(147 197 253); }             /* blue-200   */
+.dark .text-orange-700 { color: rgb(253 186 116); }             /* orange-200 */
+.dark .text-emerald-700{ color: rgb(110 231 183); }             /* emerald-200*/
 
 /* — Row / item hover states — */
 .dark .hover\:bg-slate-50:hover       { background-color: rgba(51, 65, 85, 0.50); }

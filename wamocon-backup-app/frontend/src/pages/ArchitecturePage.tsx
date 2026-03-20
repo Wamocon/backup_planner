@@ -19,7 +19,7 @@ const LAYERS = [
     },
     {
         title: 'Backup-Engine',
-        subtitle: 'WAMOCON Backup Planner auf dem Mac Studio',
+        subtitle: 'BackupPilot auf dem Mac Studio',
         color: 'indigo',
         items: [
             { icon: Desktop, label: 'Node.js Backend', desc: 'Express API, Scheduler (node-cron), JWT Auth', color: 'indigo' },

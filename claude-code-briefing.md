@@ -543,3 +543,73 @@ Die Implementierung ist abgeschlossen wenn:
 
 *Dokument erstellt: 09.03.2026 | WAMOCON GmbH | Projektmanager*
 *Dieses Briefing ist für Claude Code optimiert – kein Vorwissen aus vorherigen Chats vorhanden.*
+
+---
+
+## 16. Aktueller Deployment-Status (Stand: 19.03.2026)
+
+> **Architektur wurde gegenüber dem ursprünglichen Plan geändert.**
+
+### Tatsächliche Architektur (Produktion)
+
+| Schicht | Technologie | Status |
+|---------|-------------|--------|
+| Frontend | Vercel (deployed) | ✅ Läuft |
+| Datenbank | Supabase (PostgreSQL, Cloud) | ✅ Läuft |
+| Backend | Node.js auf Mac Mini, Port 3001 | ⏳ Noch einzurichten |
+| Tunnel | Cloudflare Tunnel `wamocon-backup` auf Mac Mini | ✅ Läuft, Status Healthy |
+
+### Cloudflare Tunnel Details
+- **Tunnel-ID:** `9ef20a58-fce1-4ce7-a242-0a7c361360bc`
+- **Öffentliche URL:** `https://9ef20a58-fce1-4ce7-a242-0a7c361360bc.cfargotunnel.com`
+- **Routing:** `cfargotunnel.com` → `localhost:3001`
+- **PID:** aktiv (via `cloudflared`)
+
+### Vercel Frontend
+- **VITE_API_URL** muss gesetzt werden auf:  
+  `https://9ef20a58-fce1-4ce7-a242-0a7c361360bc.cfargotunnel.com/api`
+- Nach Setzen der Env-Variable: Vercel Redeploy auslösen
+
+### Was bereits erledigt ist
+1. ✅ Cloudflare Tunnel `wamocon-backup` auf Mac Mini installiert und läuft
+2. ✅ Tunnel via API konfiguriert (leitet auf `localhost:3001`)
+3. ✅ Node.js auf dem Mac Mini installiert (via Homebrew)
+4. ✅ Repo geklont nach `~/backup-planner`
+
+### Nächste offene Schritte (auf dem Mac Mini ausführen)
+
+```bash
+cd ~/backup-planner/wamocon-backup-app/backend
+npm install
+
+# .env aus Huawei-Notebook kopieren oder manuell anlegen:
+cp .env.example .env
+nano .env
+# Einzutragende Werte:
+#   SUPABASE_URL=...
+#   SUPABASE_KEY=...  (Service Role Key)
+#   JWT_SECRET=...    (gleicher Wert wie bisher)
+#   ALLOWED_ORIGINS=https://<deine-vercel-url>.vercel.app
+#   PORT=3001
+#   NODE_ENV=production
+
+# PM2 global installieren
+npm install -g pm2
+
+# Backend starten
+pm2 start src/index.js --name wamocon-backup-backend
+pm2 save
+pm2 startup   # Copy & Paste den ausgegebenen Befehl
+```
+
+Dann im **Vercel Dashboard**:
+1. Settings → Environment Variables
+2. `VITE_API_URL` = `https://9ef20a58-fce1-4ce7-a242-0a7c361360bc.cfargotunnel.com/api`
+3. Redeploy auslösen
+4. Login unter der Vercel-URL testen
+
+### Hinweise zur geänderten Architektur
+- **SQLite wurde durch Supabase (PostgreSQL) ersetzt** – das Backend-Schema und die DB-Verbindung (`db.js`) müssen entsprechend angepasst sein oder wurden bereits angepasst.
+- **Frontend liegt auf Vercel**, nicht lokal auf dem Mac Mini.
+- **Backend läuft auf dem Mac Mini** und ist über den Cloudflare Tunnel erreichbar – kein direktes Port-Forwarding am Router nötig.
+- `ALLOWED_ORIGINS` im Backend muss die Vercel-Domain enthalten (CORS).

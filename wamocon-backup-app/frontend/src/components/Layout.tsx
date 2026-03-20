@@ -76,7 +76,7 @@ export default function Layout() {
 
     const [runningJob, setRunningJob]   = useState<any | null>(null);
     const [collapsed, setCollapsed]     = useState(() => localStorage.getItem('sidebar-collapsed') === 'true');
-    const [darkMode, setDarkMode]       = useState(() => localStorage.getItem('dark-mode') === 'true' || window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const [darkMode, setDarkMode]       = useState(() => localStorage.getItem('dark-mode') === 'true');
     const [mobileOpen, setMobileOpen]   = useState(false);
 
     // Apply dark mode class to root

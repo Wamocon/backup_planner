@@ -22,7 +22,7 @@ export default function ManualPage() {
                 <div className="flex items-center gap-3 mb-2">
                     <HardDrives size={40} className="text-slate-700" />
                     <div>
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">WAMOCON Backup Planner</h1>
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">BackupPilot</h1>
                         <p className="text-slate-500 text-sm">Benutzerhandbuch · Stand: März 2026</p>
                     </div>
                 </div>
@@ -38,7 +38,7 @@ export default function ManualPage() {
                             Benutzerhandbuch
                         </h1>
                         <p className="mt-3 text-slate-500 text-lg leading-relaxed max-w-2xl">
-                            Vollständige Dokumentation des WAMOCON Backup Planners — Konzepte, Konfiguration und Schritt-für-Schritt-Anleitungen.
+                            Vollständige Dokumentation von BackupPilot — Konzepte, Konfiguration und Schritt-für-Schritt-Anleitungen.
                         </p>
                     </div>
                     <button
@@ -82,7 +82,7 @@ export default function ManualPage() {
                         </div>
                         <div className="prose prose-slate max-w-none">
                             <p className="text-slate-600 leading-relaxed mb-4">
-                                Der <strong>WAMOCON Backup Planner</strong> ist eine webbasierte Anwendung zur zentralen Verwaltung und Automatisierung von Datensicherungen in der WAMOCON-Infrastruktur. Das System läuft auf dem <strong>Mac Studio Server</strong> und stellt ein Dashboard zur Konfiguration, Überwachung und Protokollierung aller Backup-Aktivitäten bereit.
+                                <strong>BackupPilot</strong> ist eine webbasierte Anwendung zur zentralen Verwaltung und Automatisierung von Datensicherungen in der WAMOCON-Infrastruktur. Das System läuft auf dem <strong>Mac Studio Server</strong> und stellt ein Dashboard zur Konfiguration, Überwachung und Protokollierung aller Backup-Aktivitäten bereit.
                             </p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
@@ -146,7 +146,7 @@ export default function ManualPage() {
                             </div>
                         </div>
                         <p className="mt-4 text-sm text-slate-500 leading-relaxed">
-                            Der WAMOCON Backup Planner setzt diese Regel um: Lokale Daten auf dem Mac Studio (Kopie 1) werden per rclone zu OneDrive (Kopie 2, Offsite) synchronisiert. Notebook-Daten werden zusätzlich lokal via UrBackup gesichert (Kopie 3).
+                            BackupPilot setzt diese Regel um: Lokale Daten auf dem Mac Studio (Kopie 1) werden per rclone zu OneDrive (Kopie 2, Offsite) synchronisiert. Notebook-Daten werden zusätzlich lokal via UrBackup gesichert (Kopie 3).
                         </p>
                     </section>
 
@@ -211,7 +211,7 @@ export default function ManualPage() {
                                 <div className="flex-1">
                                     <h3 className="text-xl font-bold text-slate-800 mb-2">Differenzielles Backup</h3>
                                     <p className="text-slate-600 mb-3 leading-relaxed text-sm">
-                                        Speichert alle Änderungen seit dem letzten <em>Vollbackup</em>. Wächst mit jedem Lauf an, bis wieder ein Vollbackup erstellt wird. Wird vom WAMOCON Planer nicht direkt verwendet, aber von UrBackup für Notebook-Sicherungen eingesetzt.
+                                        Speichert alle Änderungen seit dem letzten <em>Vollbackup</em>. Wächst mit jedem Lauf an, bis wieder ein Vollbackup erstellt wird. Wird von BackupPilot nicht direkt verwendet, aber von UrBackup für Notebook-Sicherungen eingesetzt.
                                     </p>
                                     <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-sm text-slate-600">
                                         Mittelweg zwischen Vollbackup (einfache Wiederherstellung) und inkrementellen Backup (Effizienz).
@@ -255,7 +255,7 @@ export default function ManualPage() {
                                     <li>Folge den Anweisungen zur OAuth-Autorisierung im Browser</li>
                                     <li>Bestätige die Einstellungen mit <code className="bg-slate-100 px-1 rounded">y</code></li>
                                 </ol>
-                                <p className="text-xs text-slate-500 mt-3">Das Remote ist danach unter dem gewählten Namen (z.B. <code className="bg-slate-100 px-1 rounded">wmc-onedrive:</code>) im Backup Planner als Ziel auswählbar.</p>
+                                <p className="text-xs text-slate-500 mt-3">Das Remote ist danach unter dem gewählten Namen (z.B. <code className="bg-slate-100 px-1 rounded">wmc-onedrive:</code>) in BackupPilot als Ziel auswählbar.</p>
                             </div>
 
                             <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">

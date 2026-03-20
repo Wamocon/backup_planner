@@ -197,16 +197,13 @@ export default function Layout() {
             {/* Brand */}
             <div className={`h-16 flex items-center border-b border-slate-800 bg-slate-950/30 shrink-0 ${collapsed ? 'justify-center px-2' : 'px-4 gap-3'}`}>
                 <div className="relative shrink-0">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                        <ShieldCheck size={18} weight="fill" className="text-white" />
-                    </div>
+                    <img src="/src/assets/BackupPilot.png" alt="BackupPilot" className="w-9 h-9 rounded-xl object-contain" />
                     {/* Status pulse dot */}
                     <span className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-slate-900 ${runningJob ? 'bg-blue-400 animate-pulse' : 'bg-emerald-500'}`} />
                 </div>
                 {!collapsed && (
                     <span className="font-bold text-base tracking-tight text-white leading-none">
-                        WAMOCON
-                        <span className="block text-[11px] text-blue-400 font-medium tracking-wide mt-0.5">Backup Planner</span>
+                        BackupPilot
                     </span>
                 )}
             </div>

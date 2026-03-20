@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import {
     format, addMonths, subMonths, startOfMonth, endOfMonth,
     startOfWeek, endOfWeek, isSameMonth, addDays, isToday,
-    isTomorrow, differenceInDays, isSameDay, parseISO
+    isTomorrow, differenceInDays, isSameDay, parseISO, isFuture
 } from 'date-fns';
 import { de } from 'date-fns/locale';
 import {
@@ -61,32 +61,174 @@ interface UrbCalEvent {
     incremental: number;
 }
 
+// ============================================================
+// DayDetailPanel – Problem 2: aus Monolith extrahiert
+// ============================================================
+interface DayDetailPanelProps {
+    day: Date;
+    plannedJobs: { name: string; time: string; type: string }[];
+    runs: any[];
+    urbEvents: UrbCalEvent[];
+    onClose: () => void;
+}
+
+function DayDetailPanel({ day, plannedJobs, runs, urbEvents, onClose }: DayDetailPanelProps) {
+    return (
+        <div className="bg-white rounded-2xl shadow-sm border border-indigo-200 overflow-hidden">
+            {/* Tag-Header */}
+            <div className="p-4 bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-between">
+                <div>
+                    <div className="text-xs text-indigo-200 font-semibold uppercase tracking-widest">
+                        {format(day, 'EEEE', { locale: de })}
+                    </div>
+                    <div className="text-2xl font-bold text-white mt-0.5">
+                        {format(day, 'd. MMMM yyyy', { locale: de })}
+                    </div>
+                </div>
+                <button
+                    onClick={onClose}
+                    className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-colors shrink-0"
+                    title="Schließen"
+                >
+                    <X className="w-4 h-4" />
+                </button>
+            </div>
+
+            <div className="p-4 space-y-5 max-h-[520px] overflow-y-auto">
+                {/* Geplante Ausführungen */}
+                <div>
+                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <CalendarDots size={14} />
+                        Geplante Ausführungen ({plannedJobs.length})
+                    </h4>
+                    {plannedJobs.length > 0 ? (
+                        <div className="space-y-2">
+                            {plannedJobs.map((dj, idx) => {
+                                const colors = getTypeColors(dj.type);
+                                return (
+                                    <div key={idx} className={`flex items-center gap-3 p-3 rounded-xl border ${colors.badge}`}>
+                                        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${colors.dot}`} />
+                                        <div className="min-w-0">
+                                            <div className="text-sm font-semibold truncate">{dj.name}</div>
+                                            <div className="text-xs opacity-70">{colors.label} · {dj.time} Uhr</div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-slate-400 italic pl-1">Keine Jobs geplant.</p>
+                    )}
+                </div>
+
+                {/* Problem 6: Zukunfts-Hinweis bei runs-losen Zukunftstagen */}
+                {isFuture(day) && runs.length === 0 && (
+                    <p className="text-xs text-slate-400 italic pl-1">
+                        Dieser Tag liegt in der Zukunft – noch keine Ausführungen vorhanden.
+                    </p>
+                )}
+
+                {/* Tatsächliche Runs */}
+                {runs.length > 0 && (
+                    <div>
+                        <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <CheckCircle size={14} />
+                            Tatsächliche Ausführungen ({runs.length})
+                        </h4>
+                        <div className="space-y-2">
+                            {runs.map((run, idx) => {
+                                const s = getRunStatus(run.status);
+                                const Icon = s.icon;
+                                return (
+                                    <div key={idx} className={`flex items-center gap-3 p-3 rounded-xl border ${s.bg}`}>
+                                        <Icon className={`w-4 h-4 shrink-0 ${s.color}`} />
+                                        <div className="min-w-0">
+                                            <div className="text-sm font-semibold text-slate-700 truncate">{run.job_name}</div>
+                                            <div className="text-xs text-slate-500">
+                                                {s.label} · {format(parseISO(run.started_at), 'HH:mm')} Uhr
+                                                {run.finished_at && ` – ${format(parseISO(run.finished_at), 'HH:mm')} Uhr`}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* URBackup-Events */}
+                {urbEvents.length > 0 && (
+                    <div>
+                        <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <Desktop size={14} />
+                            URBackup Backups ({urbEvents.length})
+                        </h4>
+                        <div className="space-y-2">
+                            {urbEvents.map((e, idx) => (
+                                <div key={idx} className={`flex items-center gap-3 p-3 rounded-xl border ${
+                                    e.status === 'ok' ? 'bg-teal-50 border-teal-100 text-teal-800' : 'bg-amber-50 border-amber-100 text-amber-800'
+                                }`}>
+                                    {e.backup_type === 'file'
+                                        ? <HardDrive size={16} className="shrink-0" />
+                                        : <Desktop size={16} className="shrink-0" />}
+                                    <div className="min-w-0">
+                                        <div className="text-sm font-semibold truncate">{e.client_name}</div>
+                                        <div className="text-xs opacity-70">
+                                            {e.backup_type}{e.incremental ? ' · Inkrementell' : ''}
+                                            {' · '}{format(parseISO(e.backup_time), 'HH:mm')} Uhr
+                                        </div>
+                                    </div>
+                                    <span className={`ml-auto text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
+                                        e.status === 'ok' ? 'bg-teal-200 text-teal-800' : 'bg-amber-200 text-amber-800'
+                                    }`}>{e.status}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Leer-Zustand */}
+                {plannedJobs.length === 0 && runs.length === 0 && urbEvents.length === 0 && (
+                    <div className="text-center py-10">
+                        <CalendarDots size={48} className="text-slate-200 mx-auto mb-3" />
+                        <p className="text-sm text-slate-400">Kein Backup für diesen Tag geplant.</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 export default function CalendarPage() {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [jobs, setJobs] = useState<any[]>([]);
     const [runs, setRuns] = useState<any[]>([]);
     const [urbEvents, setUrbEvents] = useState<UrbCalEvent[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [selectedDay, setSelectedDay] = useState<Date | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [showYearPicker, setShowYearPicker] = useState(false);
 
     const todayRef = useRef<HTMLDivElement>(null);
+    const yearPickerRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
 
-    // Kalender-Grenzen berechnen
-    const monthStart = startOfMonth(currentDate);
-    const monthEnd = endOfMonth(monthStart);
-    const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
-    const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
+    // Kalender-Grenzen berechnen – via useMemo stabile Referenzen (Problem 3)
+    const monthStart = useMemo(() => startOfMonth(currentDate), [currentDate]);
+    const monthEnd = useMemo(() => endOfMonth(monthStart), [monthStart]);
+    const startDate = useMemo(() => startOfWeek(monthStart, { weekStartsOn: 1 }), [monthStart]);
+    const endDate = useMemo(() => endOfWeek(monthEnd, { weekStartsOn: 1 }), [monthEnd]);
 
     const fetchJobs = async () => {
         setLoading(true);
+        setError(null);
         try {
             const resp = await client.get('/jobs');
             setJobs(resp.data);
         } catch (err) {
             console.error(err);
+            setError('Jobs konnten nicht geladen werden. Bitte Verbindung zum Backend prüfen.');
         } finally {
             setLoading(false);
         }
@@ -104,6 +246,7 @@ export default function CalendarPage() {
             setRuns(resp.data);
         } catch (err) {
             console.error(err);
+            setError('Backup-Verlauf konnte nicht geladen werden.');
         }
     };
 
@@ -126,7 +269,18 @@ export default function CalendarPage() {
         fetchRuns(startDate);
         fetchUrbEvents(startDate);
         setSelectedDay(null); // Auswahl zurücksetzen beim Monat-Wechsel
-    }, [currentDate]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [startDate]); // startDate ist via useMemo stabil – Problem 3 fix
+
+    // Problem 5: Jahr-Picker bei Klick außerhalb schließen
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (yearPickerRef.current && !yearPickerRef.current.contains(e.target as Node)) {
+                setShowYearPicker(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
 
     // --- V1: Nächsten geplanten Job berechnen (direkt aus Jobs-Daten) ---
     const nextUpcomingJob = useMemo(() => {
@@ -171,30 +325,40 @@ export default function CalendarPage() {
         return format(date, "EEEE, d. MMMM · HH:mm 'Uhr'", { locale: de });
     };
 
-    // --- Hilfsfunktion: Geplante Jobs für einen Tag (Cron-Berechnung) ---
-    const getPlannedJobsForDay = (day: Date): { name: string; time: string; type: string }[] => {
-        const dayStart = new Date(day); dayStart.setHours(0, 0, 0, 0);
-        const dayEnd = new Date(day);   dayEnd.setHours(23, 59, 59, 999);
-        const dayJobs: { name: string; time: string; type: string }[] = [];
-
-        jobs.forEach(job => {
-            if (!job.is_active || !job.schedule) return;
-            try {
-                const interval = CronExpressionParser.parse(job.schedule, {
-                    currentDate: new Date(dayStart.getTime() - 1000),
-                    endDate: dayEnd,
-                });
-                while (true) {
+    // --- Problem 1: Cron einmalig pro Monat vorausberechnen statt 42× im Render ---
+    const plannedJobsByDay = useMemo(() => {
+        const map = new Map<string, { name: string; time: string; type: string }[]>();
+        let cursor = new Date(startDate);
+        while (cursor <= endDate) {
+            if (isSameMonth(cursor, monthStart)) {
+                const key = format(cursor, 'yyyy-MM-dd');
+                const dayStart = new Date(cursor); dayStart.setHours(0, 0, 0, 0);
+                const dayEnd = new Date(cursor);   dayEnd.setHours(23, 59, 59, 999);
+                const dayJobs: { name: string; time: string; type: string }[] = [];
+                jobs.forEach(job => {
+                    if (!job.is_active || !job.schedule) return;
                     try {
-                        const obj = interval.next();
-                        dayJobs.push({ name: job.name, time: format(obj.toDate(), 'HH:mm'), type: job.backup_type });
-                    } catch { break; }
-                }
-            } catch { /* ungültige Cron-Expressions ignorieren */ }
-        });
+                        const interval = CronExpressionParser.parse(job.schedule, {
+                            currentDate: new Date(dayStart.getTime() - 1000),
+                            endDate: dayEnd,
+                        });
+                        while (true) {
+                            try {
+                                const obj = interval.next();
+                                dayJobs.push({ name: job.name, time: format(obj.toDate(), 'HH:mm'), type: job.backup_type });
+                            } catch { break; }
+                        }
+                    } catch { /* ungültige Cron-Expressions ignorieren */ }
+                });
+                map.set(key, dayJobs.sort((a, b) => a.time.localeCompare(b.time)));
+            }
+            cursor = addDays(cursor, 1);
+        }
+        return map;
+    }, [jobs, startDate, endDate, monthStart]);
 
-        return dayJobs.sort((a, b) => a.time.localeCompare(b.time));
-    };
+    const getPlannedJobsForDay = (day: Date) =>
+        plannedJobsByDay.get(format(day, 'yyyy-MM-dd')) ?? [];
 
     // --- Hilfsfunktion: Tatsächliche Runs für einen Tag ---
     const getRunsForDay = (day: Date) =>
@@ -335,6 +499,17 @@ export default function CalendarPage() {
                 </div>
             </div>
 
+            {/* Problem 4: Fehler-Banner */}
+            {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-5 py-3 rounded-2xl flex items-center gap-3 shadow-sm">
+                    <XCircle size={20} className="shrink-0 text-red-500" />
+                    <span className="text-sm font-medium">{error}</span>
+                    <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600 transition-colors">
+                        <X size={16} />
+                    </button>
+                </div>
+            )}
+
             {/* V1: Nächstes-Backup-Banner mit echtem Datum */}
             {!loading && nextUpcomingJob && (
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 p-5 rounded-2xl flex items-center justify-between shadow-sm">
@@ -370,7 +545,7 @@ export default function CalendarPage() {
                     {/* Kalender-Header */}
                     <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                         {/* Option E: Jahr-Dropdown */}
-                        <div className="relative">
+                        <div className="relative" ref={yearPickerRef}>
                             <button
                                 onClick={() => setShowYearPicker(p => !p)}
                                 className="flex items-center gap-1.5 text-lg font-bold text-slate-800 capitalize hover:text-blue-600 transition-colors"
@@ -475,122 +650,14 @@ export default function CalendarPage() {
                 {/* Rechte Sidebar: Detail-Panel oder Strategie-Karten */}
                 <div className="space-y-4">
                     {selectedDay ? (
-                        // === V4: Tag-Detail-Panel ===
-                        <div className="bg-white rounded-2xl shadow-sm border border-indigo-200 overflow-hidden">
-                            {/* Tag-Header */}
-                            <div className="p-4 bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-between">
-                                <div>
-                                    <div className="text-xs text-indigo-200 font-semibold uppercase tracking-widest">
-                                        {format(selectedDay, 'EEEE', { locale: de })}
-                                    </div>
-                                    <div className="text-2xl font-bold text-white mt-0.5">
-                                        {format(selectedDay, 'd. MMMM yyyy', { locale: de })}
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => setSelectedDay(null)}
-                                    className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-colors shrink-0"
-                                    title="Schließen"
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
-                            </div>
-
-                            <div className="p-4 space-y-5 max-h-[520px] overflow-y-auto">
-                                {/* Geplante Ausführungen */}
-                                <div>
-                                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                                        <CalendarDots size={14} />
-                                        Geplante Ausführungen ({selectedDayJobs.length})
-                                    </h4>
-                                    {selectedDayJobs.length > 0 ? (
-                                        <div className="space-y-2">
-                                            {selectedDayJobs.map((dj, idx) => {
-                                                const colors = getTypeColors(dj.type);
-                                                return (
-                                                    <div key={idx} className={`flex items-center gap-3 p-3 rounded-xl border ${colors.badge}`}>
-                                                        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${colors.dot}`} />
-                                                        <div className="min-w-0">
-                                                            <div className="text-sm font-semibold truncate">{dj.name}</div>
-                                                            <div className="text-xs opacity-70">{colors.label} · {dj.time} Uhr</div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    ) : (
-                                        <p className="text-sm text-slate-400 italic pl-1">Keine Jobs geplant.</p>
-                                    )}
-                                </div>
-
-                                {/* Tatsächliche Runs */}
-                                {selectedDayRuns.length > 0 && (
-                                    <div>
-                                        <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                            <CheckCircle size={14} />
-                                            Tatsächliche Ausführungen ({selectedDayRuns.length})
-                                        </h4>
-                                        <div className="space-y-2">
-                                            {selectedDayRuns.map((run, idx) => {
-                                                const s = getRunStatus(run.status);
-                                                const Icon = s.icon;
-                                                return (
-                                                    <div key={idx} className={`flex items-center gap-3 p-3 rounded-xl border ${s.bg}`}>
-                                                        <Icon className={`w-4 h-4 shrink-0 ${s.color}`} />
-                                                        <div className="min-w-0">
-                                                            <div className="text-sm font-semibold text-slate-700 truncate">{run.job_name}</div>
-                                                            <div className="text-xs text-slate-500">
-                                                                {s.label} · {format(parseISO(run.started_at), 'HH:mm')} Uhr
-                                                                {run.finished_at && ` – ${format(parseISO(run.finished_at), 'HH:mm')} Uhr`}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* URBackup-Events */}
-                                {selectedDayUrb.length > 0 && (
-                                    <div>
-                                        <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                                            <Desktop size={14} />
-                                            URBackup Backups ({selectedDayUrb.length})
-                                        </h4>
-                                        <div className="space-y-2">
-                                            {selectedDayUrb.map((e, idx) => (
-                                                <div key={idx} className={`flex items-center gap-3 p-3 rounded-xl border ${
-                                                    e.status === 'ok' ? 'bg-teal-50 border-teal-100 text-teal-800' : 'bg-amber-50 border-amber-100 text-amber-800'
-                                                }`}>
-                                                    {e.backup_type === 'file'
-                                                        ? <HardDrive size={16} className="shrink-0" />
-                                                        : <Desktop size={16} className="shrink-0" />}
-                                                    <div className="min-w-0">
-                                                        <div className="text-sm font-semibold truncate">{e.client_name}</div>
-                                                        <div className="text-xs opacity-70">
-                                                            {e.backup_type}{e.incremental ? ' · Inkrementell' : ''}
-                                                            {' · '}{format(parseISO(e.backup_time), 'HH:mm')} Uhr
-                                                        </div>
-                                                    </div>
-                                                    <span className={`ml-auto text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
-                                                        e.status === 'ok' ? 'bg-teal-200 text-teal-800' : 'bg-amber-200 text-amber-800'
-                                                    }`}>{e.status}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Leer-Zustand */}
-                                {selectedDayJobs.length === 0 && selectedDayRuns.length === 0 && selectedDayUrb.length === 0 && (
-                                    <div className="text-center py-10">
-                                        <CalendarDots size={48} className="text-slate-200 mx-auto mb-3" />
-                                        <p className="text-sm text-slate-400">Kein Backup für diesen Tag geplant.</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                        // Problem 2: DayDetailPanel extrahiert
+                        <DayDetailPanel
+                            day={selectedDay}
+                            plannedJobs={selectedDayJobs}
+                            runs={selectedDayRuns}
+                            urbEvents={selectedDayUrb}
+                            onClose={() => setSelectedDay(null)}
+                        />
                     ) : (
                         // === Strategie-Sidebar (Standard) ===
                         <>

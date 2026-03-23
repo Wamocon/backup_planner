@@ -47,6 +47,31 @@ jobs:
             echo "type=Preview" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Validate secrets
+        shell: bash
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_PROD }}
+        run: |
+          missing=()
+          [[ -z "$VERCEL_TOKEN" ]]      && missing+=(VERCEL_TOKEN)
+          [[ -z "$VERCEL_ORG_ID" ]]     && missing+=(VERCEL_ORG_ID)
+          [[ -z "$VERCEL_PROJECT_ID" ]] && missing+=(VERCEL_PROJECT_ID_PROD)
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            echo ""
+            echo "Fix:"
+            echo "  Go to github.com/Wamocon/backup_planner → Settings →"
+            echo "  Secrets and variables → Actions → New repository secret"
+            echo "  and add each missing secret above as a repository secret."
+            echo ""
+            echo "  OR: ensure the org-level secret scope includes this repo:"
+            echo "  github.com/organizations/Wamocon/settings/secrets/actions"
+            exit 1
+          fi
+          echo "All required secrets are present."
+
       - name: Deploy to Vercel
         id: deploy
         shell: bash

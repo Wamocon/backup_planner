@@ -59,7 +59,7 @@ jobs:
 
           vercel_environment=preview
           vercel_build_command=(build --token "$VERCEL_TOKEN")
-          vercel_deploy_command=(deploy --prebuilt --token "$VERCEL_TOKEN" --yes)
+          vercel_deploy_command=(deploy --prebuilt --token "$VERCEL_TOKEN" --yes --no-wait)
 
           if [[ "${{ steps.set-args.outputs.type }}" == "Production" ]]; then
             vercel_environment=production

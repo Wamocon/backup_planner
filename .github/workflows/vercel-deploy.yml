@@ -1,0 +1,65 @@
+name: Deploy Frontend to Vercel
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+    types:
+      - opened
+      - synchronize
+      - reopened
+  workflow_dispatch:
+    inputs:
+      production:
+        description: Deploy as a production release
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set deployment arguments
+        id: set-args
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]] || [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.production }}" == "true" ]]; then
+            echo "vercel_args=--prod" >> "$GITHUB_OUTPUT"
+            echo "type=Production" >> "$GITHUB_OUTPUT"
+          else
+            echo "vercel_args=" >> "$GITHUB_OUTPUT"
+            echo "type=Preview" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy to Vercel
+        id: deploy
+        uses: amondnet/vercel-action@v25
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_PROD }}
+          working-directory: ./wamocon-backup-app/frontend
+          vercel-args: ${{ steps.set-args.outputs.vercel_args }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deployment summary
+        shell: bash
+        run: |
+          echo "Deployment Type: ${{ steps.set-args.outputs.type }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Deployment URL: ${{ steps.deploy.outputs.preview-url }}"

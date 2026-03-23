@@ -26,10 +26,14 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
       - name: Set deployment arguments
         id: set-args
@@ -45,16 +49,29 @@ jobs:
 
       - name: Deploy to Vercel
         id: deploy
-        uses: amondnet/vercel-action@v25
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_PROD }}
-          working-directory: ./wamocon-backup-app/frontend
-          vercel-args: ${{ steps.set-args.outputs.vercel_args }}
+        working-directory: ./wamocon-backup-app/frontend
+        shell: bash
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_PROD }}
+        run: |
+          set -euo pipefail
+
+          vercel_command=(deploy --token "$VERCEL_TOKEN" --yes)
+          if [[ "${{ steps.set-args.outputs.type }}" == "Production" ]]; then
+            vercel_command+=(--prod)
+          fi
+
+          deployment_output="$(npx vercel@latest "${vercel_command[@]}" 2>&1 | tee /tmp/vercel-deploy.log)"
+          deployment_url="$(printf '%s\n' "$deployment_output" | grep -Eo 'https://[^[:space:]]+' | tail -n 1)"
+
+          if [[ -z "$deployment_url" ]]; then
+            echo "Could not determine the deployment URL from the Vercel CLI output." >&2
+            exit 1
+          fi
+
+          echo "url=$deployment_url" >> "$GITHUB_OUTPUT"
 
       - name: Deployment summary
         shell: bash
@@ -62,4 +79,4 @@ jobs:
           echo "Deployment Type: ${{ steps.set-args.outputs.type }}"
           echo "Event: ${{ github.event_name }}"
           echo "Branch: ${{ github.ref_name }}"
-          echo "Deployment URL: ${{ steps.deploy.outputs.preview-url }}"
+          echo "Deployment URL: ${{ steps.deploy.outputs.url }}"

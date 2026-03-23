@@ -57,13 +57,21 @@ jobs:
         run: |
           set -euo pipefail
 
-          vercel_command=(deploy --token "$VERCEL_TOKEN" --yes)
+          vercel_environment=preview
+          vercel_build_command=(build --token "$VERCEL_TOKEN")
+          vercel_deploy_command=(deploy --prebuilt --token "$VERCEL_TOKEN" --yes)
+
           if [[ "${{ steps.set-args.outputs.type }}" == "Production" ]]; then
-            vercel_command+=(--prod)
+            vercel_environment=production
+            vercel_build_command+=(--prod)
+            vercel_deploy_command+=(--prod)
           fi
 
+          npx vercel@latest pull --yes --environment "$vercel_environment" --token "$VERCEL_TOKEN"
+          npx vercel@latest "${vercel_build_command[@]}"
+
           set +e
-          npx vercel@latest "${vercel_command[@]}" 2>&1 | tee /tmp/vercel-deploy.log
+          npx vercel@latest "${vercel_deploy_command[@]}" 2>&1 | tee /tmp/vercel-deploy.log
           deploy_exit=${PIPESTATUS[0]}
           set -e
 

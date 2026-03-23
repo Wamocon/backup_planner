@@ -1,0 +1,98 @@
+name: Deploy Frontend to Vercel
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+    types:
+      - opened
+      - synchronize
+      - reopened
+  workflow_dispatch:
+    inputs:
+      production:
+        description: Deploy as a production release
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set deployment arguments
+        id: set-args
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]] || [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.production }}" == "true" ]]; then
+            echo "vercel_args=--prod" >> "$GITHUB_OUTPUT"
+            echo "type=Production" >> "$GITHUB_OUTPUT"
+          else
+            echo "vercel_args=" >> "$GITHUB_OUTPUT"
+            echo "type=Preview" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy to Vercel
+        id: deploy
+        shell: bash
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_PROD }}
+        run: |
+          set -euo pipefail
+
+          vercel_environment=preview
+          vercel_build_command=(build --token "$VERCEL_TOKEN")
+          vercel_deploy_command=(deploy --prebuilt --token "$VERCEL_TOKEN" --yes --no-wait)
+
+          if [[ "${{ steps.set-args.outputs.type }}" == "Production" ]]; then
+            vercel_environment=production
+            vercel_build_command+=(--prod)
+            vercel_deploy_command+=(--prod)
+          fi
+
+          npx vercel@latest pull --yes --environment "$vercel_environment" --token "$VERCEL_TOKEN"
+          npx vercel@latest "${vercel_build_command[@]}"
+
+          set +e
+          npx vercel@latest "${vercel_deploy_command[@]}" 2>&1 | tee /tmp/vercel-deploy.log
+          deploy_exit=${PIPESTATUS[0]}
+          set -e
+
+          if [[ $deploy_exit -ne 0 ]]; then
+            exit "$deploy_exit"
+          fi
+
+          deployment_output="$(cat /tmp/vercel-deploy.log)"
+          deployment_url="$(printf '%s\n' "$deployment_output" | grep -Eo 'https://[^[:space:]]+' | tail -n 1)"
+
+          if [[ -z "$deployment_url" ]]; then
+            echo "Could not determine the deployment URL from the Vercel CLI output." >&2
+            exit 1
+          fi
+
+          echo "url=$deployment_url" >> "$GITHUB_OUTPUT"
+
+      - name: Deployment summary
+        shell: bash
+        run: |
+          echo "Deployment Type: ${{ steps.set-args.outputs.type }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Deployment URL: ${{ steps.deploy.outputs.url }}"

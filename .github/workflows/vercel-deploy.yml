@@ -63,7 +63,16 @@ jobs:
             vercel_command+=(--prod)
           fi
 
-          deployment_output="$(npx vercel@latest "${vercel_command[@]}" 2>&1 | tee /tmp/vercel-deploy.log)"
+          set +e
+          npx vercel@latest "${vercel_command[@]}" 2>&1 | tee /tmp/vercel-deploy.log
+          deploy_exit=${PIPESTATUS[0]}
+          set -e
+
+          if [[ $deploy_exit -ne 0 ]]; then
+            exit "$deploy_exit"
+          fi
+
+          deployment_output="$(cat /tmp/vercel-deploy.log)"
           deployment_url="$(printf '%s\n' "$deployment_output" | grep -Eo 'https://[^[:space:]]+' | tail -n 1)"
 
           if [[ -z "$deployment_url" ]]; then

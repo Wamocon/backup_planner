@@ -2,7 +2,7 @@ module.exports = {
     apps: [
         {
             name: 'wamocon-backup-backend',
-            script: './backend/src/index.js',
+            script: './src/index.js',
             cwd: './backend',
             env: {
                 NODE_ENV: 'production',

@@ -1,0 +1,16 @@
+version: '3'
+services:
+  urbackup:
+    image: uroni/urbackup-server:latest
+    container_name: urbackup-server
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin
+    volumes:
+      - /Volumes/UrBackupStorage/backups:/backups
+      - /Volumes/UrBackupStorage/database:/var/urbackup
+    ports:
+      - "55413-55415:55413-55415"
+      - "35623:35623/udp"

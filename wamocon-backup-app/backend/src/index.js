@@ -33,6 +33,10 @@ app.use(cors({
 }));
 app.use(express.json());
 
+app.get('/', (req, res) => {
+    res.json({ status: 'ok', service: 'WamoconBackup API', version: '1.0' });
+});
+
 app.use('/api/auth', authRouter);
 app.use('/api/jobs', backupRouter);
 app.use('/api/runs', runsRouter);

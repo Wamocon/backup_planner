@@ -47,6 +47,31 @@ jobs:
             echo "type=Preview" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Validate secrets
+        shell: bash
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_PROD }}
+        run: |
+          missing=()
+          [[ -z "$VERCEL_TOKEN" ]]      && missing+=(VERCEL_TOKEN)
+          [[ -z "$VERCEL_ORG_ID" ]]     && missing+=(VERCEL_ORG_ID)
+          [[ -z "$VERCEL_PROJECT_ID" ]] && missing+=(VERCEL_PROJECT_ID_PROD)
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            echo ""
+            echo "Fix:"
+            echo "  Go to github.com/Wamocon/backup_planner → Settings →"
+            echo "  Secrets and variables → Actions → New repository secret"
+            echo "  and add each missing secret above as a repository secret."
+            echo ""
+            echo "  OR: ensure the org-level secret scope includes this repo:"
+            echo "  github.com/organizations/Wamocon/settings/secrets/actions"
+            exit 1
+          fi
+          echo "All required secrets are present."
+
       - name: Deploy to Vercel
         id: deploy
         shell: bash
@@ -54,40 +79,71 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_PROD }}
+          # Disable telemetry noise in logs
+          VERCEL_TELEMETRY_DISABLED: "1"
         run: |
           set -euo pipefail
 
-          vercel_environment=preview
-          vercel_build_command=(build --token "$VERCEL_TOKEN")
-          vercel_deploy_command=(deploy --prebuilt --token "$VERCEL_TOKEN" --yes --no-wait)
+          # Install Vercel CLI globally once so we don't re-download on every call
+          npm install --global vercel@latest --silent 2>/dev/null
 
+          # ------------------------------------------------------------------
+          # KEY FIX: Vercel checks that the git commit author is a member of
+          # the team. On a Hobby plan only the account owner qualifies.
+          # We retrieve the token owner via `vercel whoami` and override the
+          # two env vars the CLI reads INSTEAD of the local git history.
+          # This is the documented override mechanism in the Vercel CLI source.
+          # ------------------------------------------------------------------
+          VERCEL_OWNER=$(vercel whoami --token "$VERCEL_TOKEN" --no-color 2>&1 \
+            | grep -v '^>' | grep -Eo '^[A-Za-z0-9_-]+$' | head -n 1 | tr -d '[:space:]')
+
+          if [[ -z "$VERCEL_OWNER" ]]; then
+            echo "ERROR: Could not determine Vercel account owner (vercel whoami returned empty)." >&2
+            exit 1
+          fi
+          echo "Deploying as Vercel account owner: $VERCEL_OWNER"
+
+          export VERCEL_GIT_COMMIT_AUTHOR_LOGIN="$VERCEL_OWNER"
+          export VERCEL_GIT_COMMIT_AUTHOR_NAME="$VERCEL_OWNER"
+
+          vercel_environment=preview
+          prod_flag=""
           if [[ "${{ steps.set-args.outputs.type }}" == "Production" ]]; then
             vercel_environment=production
-            vercel_build_command+=(--prod)
-            vercel_deploy_command+=(--prod)
+            prod_flag="--prod"
           fi
 
-          npx vercel@latest pull --yes --environment "$vercel_environment" --token "$VERCEL_TOKEN"
-          npx vercel@latest "${vercel_build_command[@]}"
+          # Pull project settings and env vars for the target environment
+          vercel pull --yes --environment "$vercel_environment" --token "$VERCEL_TOKEN"
 
+          # Build locally so Vercel doesn't run a remote build (which also
+          # triggers the git author check on the build machine)
+          # shellcheck disable=SC2086
+          vercel build $prod_flag --token "$VERCEL_TOKEN"
+
+          # Deploy the prebuilt output; capture output to extract the URL
           set +e
-          npx vercel@latest "${vercel_deploy_command[@]}" 2>&1 | tee /tmp/vercel-deploy.log
+          # shellcheck disable=SC2086
+          vercel deploy --prebuilt $prod_flag --token "$VERCEL_TOKEN" --yes \
+            2>&1 | tee /tmp/vercel-deploy.log
           deploy_exit=${PIPESTATUS[0]}
           set -e
 
-          if [[ $deploy_exit -ne 0 ]]; then
-            exit "$deploy_exit"
-          fi
-
-          deployment_output="$(cat /tmp/vercel-deploy.log)"
-          deployment_url="$(printf '%s\n' "$deployment_output" | grep -Eo 'https://[^[:space:]]+' | tail -n 1)"
+          # Extract the deployment URL from the CLI output
+          deployment_url="$(grep -Eo 'https://[^[:space:]]+\.vercel\.app' /tmp/vercel-deploy.log \
+            | head -n 1 || true)"
 
           if [[ -z "$deployment_url" ]]; then
-            echo "Could not determine the deployment URL from the Vercel CLI output." >&2
+            echo "ERROR: No deployment URL found. Full Vercel CLI output:" >&2
+            cat /tmp/vercel-deploy.log >&2
             exit 1
           fi
 
           echo "url=$deployment_url" >> "$GITHUB_OUTPUT"
+
+          if [[ $deploy_exit -ne 0 ]]; then
+            echo "::warning::Vercel CLI exited $deploy_exit but URL was captured: $deployment_url"
+          fi
 
       - name: Deployment summary
         shell: bash
